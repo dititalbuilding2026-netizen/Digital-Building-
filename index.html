@@ -4,175 +4,790 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>المبنى الرقمي - بوابة الخدمات الذكية</title>
-    <!-- مكتبات التشغيل المستقرة -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;900&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans Arabic', sans-serif; background-color: #f0f4f8; margin: 0; padding: 16px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
-        .card { background: #fff; padding: 24px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 460px; box-sizing: border-box; }
-        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
-        input:focus, select:focus, textarea:focus { border-color: #3b82f6; outline: none; }
-        label { font-size: 12px; color: #64748b; display: block; text-align: right; margin-bottom: 4px; font-weight: bold; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 14px; transition: 0.2s; }
-        .btn-blue { background: #3b82f6; color: #fff; }
-        .btn-red { background: #ef4444; color: #fff; }
-        .btn-green { background: #10b981; color: #fff; }
-        .menu-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 11px; cursor: pointer; }
-        .error { color: #ef4444; font-weight: bold; margin-bottom: 14px; font-size: 12px; text-align: center; background: #fef2f2; padding: 10px; border-radius: 10px; }
-        .success-box { background: #f0fdf4; color: #10b981; padding: 12px; border-radius: 10px; font-weight: bold; text-align: center; font-size: 12px; border: 1px solid #bbf7d0; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            background: #f0f4f8;
+            margin: 0; padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ── Login screen ─────────────────────────── */
+        .login-bg {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2940 55%, #0d2137 100%);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 36px 28px;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 24px 80px rgba(0,0,0,.25);
+        }
+        .login-logo { text-align: center; margin-bottom: 24px; }
+        .login-logo .icon { font-size: 44px; display: block; margin-bottom: 8px; }
+        .login-logo h1 { font-size: 22px; font-weight: 900; color: #1e293b; margin: 0 0 4px; }
+        .login-logo p { font-size: 13px; color: #64748b; margin: 0; }
+
+        /* Step dots */
+        .step-dots { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 24px; }
+        .step-dot { height: 8px; border-radius: 99px; transition: all .3s; }
+
+        /* Type selector */
+        .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .type-btn {
+            background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 14px; padding: 14px 10px;
+            cursor: pointer; text-align: center;
+            font-family: inherit; transition: all .2s;
+        }
+        .type-btn:hover { border-color: #3b82f6; background: #eff6ff; }
+        .type-btn.selected { border-color: #3b82f6; background: #eff6ff; }
+        .type-btn .t-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+        .type-btn .t-label { font-size: 12px; font-weight: 700; color: #1e293b; }
+        .type-btn .t-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+        /* Role selector */
+        .role-row { display: flex; gap: 8px; margin-bottom: 18px; }
+        .role-btn {
+            flex: 1; background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 12px; padding: 10px 6px;
+            cursor: pointer; text-align: center;
+            font-family: inherit; transition: all .2s;
+        }
+        .role-btn:hover { border-color: #6366f1; }
+        .role-btn.selected { border-color: #6366f1; background: #f5f3ff; }
+        .role-btn .r-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .role-btn .r-label { font-size: 11px; font-weight: 700; color: #1e293b; }
+
+        /* Form inputs */
+        .field-group { margin-bottom: 12px; }
+        .field-group label { font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 5px; }
+        .field-group input, .field-group select {
+            width: 100%; padding: 12px 14px;
+            border: 2px solid #e2e8f0; border-radius: 12px;
+            font-family: inherit; font-size: 14px; outline: none;
+            transition: border .2s; background: #fff;
+        }
+        .field-group input:focus, .field-group select:focus { border-color: #3b82f6; }
+
+        /* Buttons */
+        .btn {
+            width: 100%; padding: 14px;
+            border: none; border-radius: 50px;
+            font-weight: 700; cursor: pointer;
+            font-family: inherit; font-size: 14px;
+            transition: all .2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 8px 24px rgba(99,102,241,.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(99,102,241,.4); }
+        .btn-secondary { background: #f1f5f9; color: #64748b; }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+        .btn-sm { width: auto; padding: 8px 16px; font-size: 12px; border-radius: 10px; }
+        .back-btn {
+            background: none; border: none; cursor: pointer;
+            color: #64748b; font-family: inherit; font-size: 13px;
+            display: flex; align-items: center; gap: 4px;
+            padding: 0; margin-bottom: 18px; font-weight: 600;
+        }
+
+        /* ── App shell ────────────────────────────── */
+        .app-shell { min-height: 100vh; background: #f0f4f8; }
+
+        /* Top nav */
+        .top-nav {
+            background: #1e293b;
+            height: 56px; padding: 0 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 16px rgba(0,0,0,.2);
+        }
+        .nav-brand { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 800; font-size: 15px; }
+        .nav-badge {
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+        }
+        .nav-actions { display: flex; gap: 8px; }
+        .nav-btn {
+            background: rgba(255,255,255,.1); border: none;
+            color: #fff; padding: 6px 14px; border-radius: 20px;
+            cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+        }
+        .nav-btn.danger { background: rgba(239,68,68,.18); color: #f87171; }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; right: 0; left: 0;
+            background: #fff; border-top: 1px solid #e2e8f0;
+            display: flex; z-index: 99;
+            box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+        }
+        .bottom-tab {
+            flex: 1; padding: 10px 4px 12px;
+            border: none; background: none;
+            cursor: pointer; font-family: inherit;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            font-size: 10px; font-weight: 600; color: #94a3b8;
+            transition: color .2s;
+        }
+        .bottom-tab.active { color: #3b82f6; }
+        .bottom-tab .tab-icon { font-size: 20px; }
+
+        /* Content area */
+        .content { padding: 16px; max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+
+        /* Cards */
+        .card {
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.06);
+            margin-bottom: 14px; overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 18px; border-bottom: 1px solid #f1f5f9;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: #1e293b; }
+        .card-body { padding: 16px 18px; }
+
+        /* Stats grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px; }
+        .stat-card {
+            background: #fff; border-radius: 14px;
+            padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+            border-top: 3px solid;
+        }
+        .stat-card .s-icon { font-size: 22px; margin-bottom: 8px; display: block; }
+        .stat-card .s-val { font-size: 24px; font-weight: 800; display: block; }
+        .stat-card .s-lbl { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+        /* Hero banner */
+        .hero-banner {
+            border-radius: 16px; padding: 20px;
+            margin-bottom: 14px; color: #fff;
+            position: relative; overflow: hidden;
+        }
+        .hero-banner h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+        .hero-banner p { margin: 0; font-size: 12px; opacity: .75; }
+
+        /* List items */
+        .list-item {
+            padding: 13px 18px;
+            border-bottom: 1px solid #f8fafc;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-left { display: flex; align-items: center; gap: 11px; }
+        .list-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .list-title { font-size: 13px; font-weight: 600; color: #1e293b; }
+        .list-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+        /* Badges */
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .badge-green { background: #dcfce7; color: #16a34a; }
+        .badge-amber { background: #fef3c7; color: #d97706; }
+        .badge-red { background: #fee2e2; color: #dc2626; }
+        .badge-blue { background: #eff6ff; color: #3b82f6; }
+
+        /* Alert */
+        .alert { padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+        .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .alert-info { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+
+        /* Form inside app */
+        .app-input {
+            width: 100%; padding: 12px 14px;
+            border: 2px solid #e2e8f0; border-radius: 12px;
+            font-family: inherit; font-size: 13px; outline: none;
+            transition: border .2s; margin-bottom: 10px;
+        }
+        .app-input:focus { border-color: #3b82f6; }
+        textarea.app-input { resize: vertical; min-height: 80px; }
+
+        /* Vote card */
+        .vote-card { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+        .vote-q { font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 12px; }
+        .vote-btns { display: flex; gap: 8px; }
+        .vote-btn {
+            flex: 1; padding: 10px; border: none; border-radius: 10px;
+            font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+            transition: all .15s;
+        }
+        .vote-btn.yes { background: #dcfce7; color: #16a34a; }
+        .vote-btn.no { background: #fee2e2; color: #dc2626; }
+        .vote-btn:disabled { opacity: .5; cursor: default; }
+        .voted-label { font-size: 12px; color: #10b981; font-weight: 700; margin-top: 8px; }
+
+        /* Visitor section */
+        .visitor-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+        .visitor-type-btn {
+            background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 12px; padding: 12px;
+            cursor: pointer; text-align: center; font-family: inherit;
+            transition: all .15s;
+        }
+        .visitor-type-btn:hover { border-color: #3b82f6; background: #eff6ff; }
+        .visitor-type-btn.sel { border-color: #3b82f6; background: #eff6ff; }
+
+        /* Notification dot */
+        .notif-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ef4444; display: inline-block;
+            box-shadow: 0 0 6px #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:.7} }
+
+        /* Progress bar */
+        .prog-wrap { background: #f1f5f9; border-radius: 99px; height: 8px; overflow: hidden; }
+        .prog-bar { height: 100%; border-radius: 99px; transition: width .5s; }
+
+        .lang-btn {
+            position: absolute; top: 16px; left: 16px;
+            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+            color: #fff; padding: 6px 14px; border-radius: 30px;
+            cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700;
+        }
     </style>
 </head>
 <body>
+<div id="root"></div>
 
-    <div id="root"></div>
+<script>
+const { useState, useEffect, useRef } = React;
 
-    <script>
-        const { useState, useEffect } = React;
-        
-        const supabaseUrl = 'https://qfdkuzlndzlydcrwboqi.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = 'https://qfdkuzlndzlydcrwboqi.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY';
+const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        function TenantApp() {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [loading, setLoading] = useState(false);
-            const [userData, setUserData] = useState(null);
-            const [errorMsg, setErrorMsg] = useState("");
-            const [activeMenu, setActiveMenu] = useState("home");
+// ─── helpers ─────────────────────────────────────────────────────────────
+const ce = React.createElement;
 
-            const [credentials, setCredentials] = useState({ building_id: "", unit: "", password_code: "", role: "owner", property_type: "building" });
-            const [managedAccounts, setManagedAccounts] = useState([]);
-            const [hoaForm, setHoaForm] = useState({ role: "owner", unit: "", password_code: "" });
-            
-            const [tickets, setTickets] = useState([]);
-            const [votes, setVotes] = useState([]);
-            const [votedList, setVotedList] = useState([]);
-            const [ticketForm, setTicketForm] = useState({ title: "", description: "" });
-            const [notif, setNotif] = useState("");
+function Badge({ cls, children }) {
+    return ce('span', { className: `badge ${cls}` }, children);
+}
 
-            const loadAppData = (user) => {
-                supabase.from("building_tickets").select("*").eq("building_id", user.building_id).then(res => { if(res.data) setTickets(res.data); });
-                supabase.from("building_votes").select("*").eq("building_id", user.building_id).then(res => { if(res.data) setVotes(res.data); });
-                supabase.from("building_accounts").select("*").eq("created_by", user.password_code).then(res => { if(res.data) setManagedAccounts(res.data); });
-            };
+function Alert({ type, msg, onClose }) {
+    if (!msg) return null;
+    return ce('div', { className: `alert alert-${type}`, style: { display:'flex', justifyContent:'space-between', alignItems:'center' } },
+        ce('span', null, msg),
+        onClose && ce('span', { onClick: onClose, style: { cursor:'pointer', fontSize:16 } }, '✕')
+    );
+}
 
-            const handleLogin = async (e) => {
-                e.preventDefault();
-                setLoading(true); setErrorMsg("");
-                try {
-                    let query = supabase.from("building_accounts").select("*").eq("building_id", credentials.building_id.trim()).eq("password_code", credentials.password_code.trim()).eq("role", credentials.role);
-                    if (credentials.role === 'owner') query = query.eq("unit", credentials.unit.trim());
+// ─── LOGIN FLOW ───────────────────────────────────────────────────────────
+function LoginFlow({ onLogin }) {
+    const [lang, setLang] = useState('ar');
+    const [step, setStep] = useState(1);
+    const [propType, setPropType] = useState(null);
+    const [role, setRole] = useState(null);
+    const [form, setForm] = useState({ building_id:'', unit:'', password_code:'' });
+    const [loading, setLoading] = useState(false);
+    const [err, setErr] = useState('');
 
-                    const { data } = await query;
-                    if (data && data.length > 0) {
-                        setUserData(data[0]); setIsLoggedIn(true); loadAppData(data[0]);
-                    } else { setErrorMsg("⚠️ بيانات الدخول غير مطابقة، تأكد من المدخلات والرمز السري"); }
-                } catch (err) { setErrorMsg("⚠️ حدث خطأ في الاتصال بالسيرفر"); }
-                setLoading(false);
-            };
-
-            const handleHoaCreate = async (e) => {
-                e.preventDefault(); setNotif("");
-                if (managedAccounts.length >= (userData.allowed_units || 0)) {
-                    setNotif("⚠️ عذراً! استهلكت كامل باقة الوحدات المتاحة لك."); return;
-                }
-                const newAcc = { building_id: userData.building_id, unit: hoaForm.unit.trim(), password_code: hoaForm.password_code.trim(), role: hoaForm.role, created_by: userData.password_code };
-                await supabase.from("building_accounts").insert([newAcc]);
-                setNotif("🎉 تم توليد حساب الساكن بنجاح!"); setHoaForm({ role: "owner", unit: "", password_code: "" });
-                supabase.from("building_accounts").select("*").eq("created_by", userData.password_code).then(res => { if(res.data) setManagedAccounts(res.data); });
-            };
-
-            const handleSendTicket = async (e) => {
-                e.preventDefault();
-                await supabase.from("building_tickets").insert([{ building_id: userData.building_id, unit: userData.unit || 'عامة', title: ticketForm.title, description: ticketForm.description }]);
-                setNotif("✅ تم إرسال بلاغ الصيانة بنجاح!"); setTicketForm({ title: "", description: "" });
-                supabase.from("building_tickets").select("*").eq("building_id", userData.building_id).then(res => { if(res.data) setTickets(res.data); });
-            };
-
-            if (isLoggedIn && userData) {
-                return React.createElement("div", { className: "card" },
-                    React.createElement("div", { style: { background: userData.role==='hoa'?'#6366f1':'#1e293b', color: "#fff", padding: 16, borderRadius: 16, textAlign: "center", marginBottom: 16 } },
-                        React.createElement("h3", { style: { margin: 0 } }, "المبنى الرقمي الذكي 🏢"),
-                        React.createElement("p", { style: { margin: "4px 0 0", fontSize: 12 } }, `منشأة: ${userData.building_id} ${userData.unit ? `| وحدة: ${userData.unit}` : ''}`),
-                        React.createElement("span", { style: { fontSize: 11, fontWeight: "bold", background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: 10, display: "inline-block", marginTop: 6 } }, `صلاحيتك: ${userData.role==='owner'?'مالك':userData.role==='hoa'?'مدير اتحاد':'مقاول'}`)
-                    ),
-                    React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16 } },
-                        React.createElement("button", { onClick: () => setActiveMenu("home"), className: "menu-btn", style: { background: activeMenu==='home'?'#3b82f6':'#fff', color: activeMenu==='home'?'#fff':'#64748b' } }, "🏠 رئيسية"),
-                        userData.role !== 'contractor' && React.createElement("button", { onClick: () => setActiveMenu("ticket"), className: "menu-btn", style: { background: activeMenu==='ticket'?'#3b82f6':'#fff', color: activeMenu==='ticket'?'#fff':'#64748b' } }, "🛠️ صيانة"),
-                        userData.role !== 'contractor' && React.createElement("button", { onClick: () => setActiveMenu("vote"), className: "menu-btn", style: { background: activeMenu==='vote'?'#3b82f6':'#fff', color: activeMenu==='vote'?'#fff':'#64748b' } }, "🗳️ تصويت"),
-                        userData.role === 'hoa' && React.createElement("button", { onClick: () => setActiveMenu("hoa"), className: "menu-btn", style: { background: activeMenu==='hoa'?'#3b82f6':'#fff', color: activeMenu==='hoa'?'#fff':'#64748b' } }, "👑 إدارة")
-                    ),
-                    notif && React.createElement("div", { className: "success-box", style: { marginBottom: 12 } }, notif),
-                    activeMenu === 'home' && React.createElement("div", { className: "success-box" }, "💰 الحساب مستقر ولا توجد مستحقات معلقة لعام 2026م."),
-                    activeMenu === 'ticket' && React.createElement("div", null,
-                        React.createElement("form", { onSubmit: handleSendTicket },
-                            React.createElement("input", { type: "text", value: ticketForm.title, placeholder: "عنوان العطل", onChange: (e)=>setTicketForm({...ticketForm, title:e.target.value}), required: true }),
-                            React.createElement("textarea", { value: ticketForm.description, placeholder: "تفاصيل الموقع...", onChange: (e)=>setTicketForm({...ticketForm, description:e.target.value}), required: true }),
-                            React.createElement("button", { type: "submit", className: "btn btn-red" }, "🚀 إرسال البلاغ فوراً")
-                        )
-                    ),
-                    activeMenu === 'vote' && React.createElement("div", null,
-                        votes.map(v => React.createElement("div", { key: v.id, style: { border: "1px solid #e2e8f0", padding: 10, borderRadius: 12, marginBottom: 8 } },
-                            React.createElement("p", { style: { margin: "0 0 8px 0", fontWeight: "bold" } }, v.question),
-                            React.createElement("div", { style: { display: "flex", gap: 6 } },
-                                React.createElement("button", { onClick: () => { supabase.from("vote_responses").insert([{ vote_id: v.id, unit: userData.unit || 'مدير', selected_option: 'موافق' }]); setNotif("✓ تم تسجيل التصويت"); }, className: "btn btn-green", style: { padding: 6 } }, "👍 موافق"),
-                                React.createElement("button", { onClick: () => { supabase.from("vote_responses").insert([{ vote_id: v.id, unit: userData.unit || 'مدير', selected_option: 'معترض' }]); setNotif("✓ تم تسجيل التصويت"); }, className: "btn btn-red", style: { padding: 6 } }, "👎 معترض")
-                            )
-                        ))
-                    ),
-                    activeMenu === 'hoa' && React.createElement("div", null,
-                        React.createElement("div", { style: { background: "#f8fafc", padding: 10, textAlign: "center", borderRadius: 12, marginBottom: 10, border: "1px solid #e2e8f0" } }, `📊 الوحدات المضافة: ${managedAccounts.length} من أصل ${userData.allowed_units || 0}`),
-                        React.createElement("form", { onSubmit: handleHoaCreate },
-                            React.createElement("input", { type: "text", value: hoaForm.unit, placeholder: "رقم الشقة", onChange: (e)=>setHoaForm({...hoaForm, unit:e.target.value}), required: true }),
-                            React.createElement("input", { type: "text", value: hoaForm.password_code, placeholder: "الرمز السري للدخول", onChange: (e)=>setHoaForm({...hoaForm, password_code:e.target.value}), required: true }),
-                            React.createElement("select", { value: hoaForm.role, onChange: (e)=>setHoaForm({...hoaForm, role:e.target.value}) },
-                                React.createElement("option", { value: "owner" }, "👤 مالك وحدة"),
-                                React.createElement("option", { value: "contractor" }, "🔧 مقاول صيانة")
-                            ),
-                            React.createElement("button", { type: "submit", className: "btn btn-green" }, "💾 توليد وحفظ الحساب")
-                        )
-                    ),
-                    React.createElement("button", { onClick: () => location.reload(), className: "btn btn-blue", style: { marginTop: 16 } }, "🚪 تسجيل الخروج")
-                );
-            }
-
-            return React.createElement("div", null,
-                React.createElement("span", { style: { fontSize: 40 } }, "🏢"),
-                React.createElement("h2", { style: { color: "#1e293b", margin: "10px 0 0", fontWeight: 900 } }, "المبنى الرقمي"),
-                React.createElement("p", { style: { color: "#64748b", fontSize: 12, margin: "4px 0 20px" } }, "بوابتك الذكية لإدارة عقارك"),
-                errorMsg && React.createElement("div", { className: "error" }, errorMsg),
-                React.createElement("form", { onSubmit: handleLogin },
-                    React.createElement("label", null, "الدور / الصفة"),
-                    React.createElement("select", { value: credentials.role, onChange: (e) => setCredentials({ ...credentials, role: e.target.value }) },
-                        React.createElement("option", { value: "owner" }, "👤 مالك الوحدة"),
-                        React.createElement("option", { value: "hoa" }, "👑 رئيس جمعية اتحاد الملاك"),
-                        React.createElement("option", { value: "contractor" }, "🔧 مقاول الصيانة")
-                    ),
-                    credentials.role === 'owner' && React.createElement("div", null,
-                        React.createElement("label", null, "نوع السكن"),
-                        React.createElement("select", { value: credentials.property_type, onChange: (e) => setCredentials({ ...credentials, property_type: e.target.value }) },
-                            React.createElement("option", { value: "building" }, "🏢 عمارة"),
-                            React.createElement("option", { value: "compound" }, "🏡 كمباوند")
-                        )
-                    ),
-                    React.createElement("label", null, credentials.role==='owner' && credentials.property_type==='compound' ? "اسم الكمباوند" : "رقم / اسم العمارة"),
-                    React.createElement("input", { type: "text", value: credentials.building_id, placeholder: "مثال: 12", onChange: (e) => setCredentials({ ...credentials, building_id: e.target.value }), required: true }),
-                    credentials.role === 'owner' && React.createElement("div", null,
-                        React.createElement("label", null, "رقم الشقة / الوحدة"),
-                        React.createElement("input", { type: "text", value: credentials.unit, placeholder: "مثال: 5", onChange: (e) => setCredentials({ ...credentials, unit: e.target.value }), required: true })
-                    ),
-                    React.createElement("label", null, "الرمز السري"),
-                    React.createElement("input", { type: "password", value: credentials.password_code, placeholder: "🔑 الرمز السري", onChange: (e) => setCredentials({ ...credentials, password_code: e.target.value }), required: true }),
-                    React.createElement("button", { type: "submit", className: "btn btn-blue" }, "🚪 تسجيل الدخول")
-                )
-            );
+    const T = {
+        ar: {
+            title:'المبنى الرقمي', sub:'بوابتك الذكية لإدارة عقارك',
+            step1:'نوع العقار', step1sub:'اختر نوع عقارك',
+            step2:'دورك في العقار', step2sub:'حدد صلاحيتك',
+            step3:'بيانات الدخول', step3sub:'أدخل تفاصيل وحدتك',
+            types:{ building:{l:'عمارة سكنية', d:'شقق في عمارة واحدة', i:'🏢'}, compound:{l:'مجمع/كمباوند', d:'أبراج أو وحدات في مجمع', i:'🏘️'}, villa:{l:'فيلا', d:'فيلا مستقلة في حي', i:'🏡'}, townhouse:{l:'تاون هاوس', d:'وحدة في تاون هاوس', i:'🏠'} },
+            roles:{ owner:{l:'مالك الوحدة', i:'🏠'}, hoa:{l:'رئيس الاتحاد', i:'👑'}, contractor:{l:'مقاول / خدمات', i:'🔧'} },
+            bldLabel:'رقم / اسم المبنى', cmpLabel:'اسم المجمع',
+            unitLabel:'رقم الوحدة / الشقة', passLabel:'الرمز السري',
+            userLabel:'اسم المستخدم',
+            enter:'تسجيل الدخول', back:'رجوع', next:'التالي →',
+            err1:'يرجى إدخال جميع الحقول', err2:'بيانات الدخول غير صحيحة',
+            forgot:'نسيت الرمز السري؟',
+        },
+        en: {
+            title:'Digital Building', sub:'Your smart property management portal',
+            step1:'Property Type', step1sub:'Select your property type',
+            step2:'Your Role', step2sub:'Select your access level',
+            step3:'Login Details', step3sub:'Enter your unit details',
+            types:{ building:{l:'Apartment Building', d:'Units in a single building', i:'🏢'}, compound:{l:'Compound', d:'Towers or units in a compound', i:'🏘️'}, villa:{l:'Villa', d:'Standalone villa', i:'🏡'}, townhouse:{l:'Townhouse', d:'Unit in a townhouse complex', i:'🏠'} },
+            roles:{ owner:{l:'Unit Owner', i:'🏠'}, hoa:{l:'HOA President', i:'👑'}, contractor:{l:'Contractor', i:'🔧'} },
+            bldLabel:'Building Number / Name', cmpLabel:'Compound Name',
+            unitLabel:'Unit / Apartment Number', passLabel:'Password / Code',
+            userLabel:'Username',
+            enter:'Sign In', back:'Back', next:'Next →',
+            err1:'Please fill all fields', err2:'Invalid credentials',
+            forgot:'Forgot your code?',
         }
+    };
+    const t = T[lang];
+    const typeColors = { building:'#3b82f6', compound:'#6366f1', villa:'#10b981', townhouse:'#f59e0b' };
+    const roleColors = { owner:'#3b82f6', hoa:'#7c3aed', contractor:'#10b981' };
+    const tc = typeColors[propType] || '#3b82f6';
+    const rc = roleColors[role] || '#3b82f6';
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(TenantApp));
-    </script>
+    const dots = [1,2,3].map(n =>
+        ce('div', { key:n, style:{ display:'flex', alignItems:'center', gap:6 } },
+            ce('div', { className:'step-dot', style:{ width: step===n?28:step>n?14:10, background: step>n?'#10b981':step===n?tc:'#e2e8f0' } }),
+            n<3 && ce('div', { style:{ width:16, height:3, borderRadius:99, background: step>n?'#10b981':'#e2e8f0', transition:'background .3s' } })
+        )
+    );
+
+    const handleLogin = async () => {
+        if (!form.building_id || !form.password_code) { setErr(t.err1); return; }
+        if (role==='owner' && !form.unit) { setErr(t.err1); return; }
+        setLoading(true); setErr('');
+        try {
+            let q = sb.from('building_accounts').select('*')
+                .eq('building_id', form.building_id.trim())
+                .eq('password_code', form.password_code.trim())
+                .eq('role', role);
+            if (role==='owner') q = q.eq('unit', form.unit.trim());
+            const { data } = await q;
+            if (data && data.length>0) {
+                onLogin({ ...data[0], property_type: propType, lang });
+            } else { setErr(t.err2); }
+        } catch { setErr('Connection error'); }
+        setLoading(false);
+    };
+
+    return ce('div', { className:'login-bg' },
+        ce('button', { className:'lang-btn', onClick:()=>setLang(lang==='ar'?'en':'ar') }, lang==='ar'?'EN':'ع'),
+        ce('div', { className:'login-card' },
+            ce('div', { className:'login-logo' },
+                ce('span', { className:'icon' }, '🏢'),
+                ce('h1', null, t.title),
+                ce('p', null, t.sub)
+            ),
+            ce('div', { className:'step-dots' }, ...dots),
+
+            // Step 1 — property type
+            step===1 && ce('div', null,
+                ce('h3', { style:{margin:'0 0 4px',fontSize:15,color:'#1e293b'} }, t.step1),
+                ce('p', { style:{margin:'0 0 16px',fontSize:12,color:'#94a3b8'} }, t.step1sub),
+                ce('div', { className:'type-grid' },
+                    ...Object.entries(t.types).map(([key,v]) =>
+                        ce('button', { key, className:`type-btn ${propType===key?'selected':''}`,
+                            style:{ borderColor: propType===key?typeColors[key]:'#e2e8f0', background: propType===key?typeColors[key]+'15':'#f8fafc' },
+                            onClick:()=>setPropType(key) },
+                            ce('span', { className:'t-icon' }, v.i),
+                            ce('div', { className:'t-label' }, v.l),
+                            ce('div', { className:'t-desc' }, v.d)
+                        )
+                    )
+                ),
+                propType && ce('button', { className:'btn btn-primary', onClick:()=>setStep(2),
+                    style:{background:`linear-gradient(135deg,${tc},${tc}bb)`, boxShadow:`0 8px 24px ${tc}44`} }, t.next)
+            ),
+
+            // Step 2 — role
+            step===2 && ce('div', null,
+                ce('button', { className:'back-btn', onClick:()=>setStep(1) }, '← '+t.back),
+                ce('h3', { style:{margin:'0 0 4px',fontSize:15,color:'#1e293b'} }, t.step2),
+                ce('p', { style:{margin:'0 0 16px',fontSize:12,color:'#94a3b8'} }, t.step2sub),
+                ce('div', { className:'role-row' },
+                    ...Object.entries(t.roles).map(([key,v]) =>
+                        ce('button', { key, className:`role-btn ${role===key?'selected':''}`,
+                            style:{ borderColor: role===key?roleColors[key]:'#e2e8f0', background: role===key?roleColors[key]+'12':'#f8fafc' },
+                            onClick:()=>setRole(key) },
+                            ce('span', { className:'r-icon' }, v.i),
+                            ce('div', { className:'r-label' }, v.l)
+                        )
+                    )
+                ),
+                role && ce('button', { className:'btn btn-primary', onClick:()=>setStep(3),
+                    style:{background:`linear-gradient(135deg,${rc},${rc}bb)`, boxShadow:`0 8px 24px ${rc}44`} }, t.next)
+            ),
+
+            // Step 3 — credentials
+            step===3 && ce('div', null,
+                ce('button', { className:'back-btn', onClick:()=>setStep(2) }, '← '+t.back),
+                ce('h3', { style:{margin:'0 0 4px',fontSize:15,color:'#1e293b'} }, t.step3),
+                ce('p', { style:{margin:'0 0 16px',fontSize:12,color:'#94a3b8'} }, t.step3sub),
+                // pills
+                ce('div', { style:{display:'flex',gap:7,marginBottom:16,flexWrap:'wrap'} },
+                    ce('span', { style:{background:tc+'18',color:tc,padding:'4px 12px',borderRadius:20,fontSize:11,fontWeight:700} }, t.types[propType]?.i+' '+t.types[propType]?.l),
+                    ce('span', { style:{background:rc+'15',color:rc,padding:'4px 12px',borderRadius:20,fontSize:11,fontWeight:700} }, t.roles[role]?.i+' '+t.roles[role]?.l)
+                ),
+                err && ce(Alert, { type:'error', msg:err, onClose:()=>setErr('') }),
+                ce('div', { className:'field-group' },
+                    ce('label', null, propType==='compound'?t.cmpLabel:t.bldLabel),
+                    ce('input', { value:form.building_id, onChange:e=>setForm({...form,building_id:e.target.value}), placeholder:'مثال: الشقاف 1' })
+                ),
+                role==='owner' && ce('div', { className:'field-group' },
+                    ce('label', null, t.unitLabel),
+                    ce('input', { value:form.unit, onChange:e=>setForm({...form,unit:e.target.value}), placeholder:'مثال: C-206' })
+                ),
+                ce('div', { className:'field-group' },
+                    ce('label', null, role==='contractor'?t.userLabel:t.passLabel),
+                    ce('input', { type:'password', value:form.password_code, onChange:e=>setForm({...form,password_code:e.target.value}), placeholder:'🔑' })
+                ),
+                ce('div', { style:{textAlign:'left',marginBottom:16} },
+                    ce('span', { style:{color:'#3b82f6',fontSize:12,cursor:'pointer',fontWeight:600} }, t.forgot)
+                ),
+                ce('button', { className:'btn btn-primary', onClick:handleLogin, disabled:loading,
+                    style:{background:`linear-gradient(135deg,${rc},${tc})`, boxShadow:`0 8px 28px ${rc}44`} },
+                    loading ? '⏳ جاري التحقق...' : t.enter
+                )
+            )
+        )
+    );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────
+function App() {
+    const [user, setUser] = useState(null);
+    const [tab, setTab] = useState('home');
+    const [tickets, setTickets] = useState([]);
+    const [votes, setVotes] = useState([]);
+    const [votedMap, setVotedMap] = useState({});
+    const [managed, setManaged] = useState([]);
+    const [ticketForm, setTicketForm] = useState({ title:'', description:'' });
+    const [hoaForm, setHoaForm] = useState({ unit:'', password_code:'', role:'owner' });
+    const [notif, setNotif] = useState({ type:'', msg:'' });
+    const [visitorForm, setVisitorForm] = useState({ name:'', type:'visitor', note:'', plate:'' });
+    const [visitorLog, setVisitorLog] = useState([]);
+    const [visitorType, setVisitorType] = useState('visitor');
+
+    const showNotif = (type, msg) => { setNotif({ type, msg }); setTimeout(()=>setNotif({type:'',msg:''}), 4000); };
+
+    const load = (u) => {
+        sb.from('building_tickets').select('*').eq('building_id', u.building_id).order('created_at',{ascending:false}).then(r=>{ if(r.data) setTickets(r.data); });
+        sb.from('building_votes').select('*').eq('building_id', u.building_id).order('created_at',{ascending:false}).then(r=>{ if(r.data) setVotes(r.data); });
+        if (u.role==='hoa') sb.from('building_accounts').select('*').eq('created_by', u.password_code).then(r=>{ if(r.data) setManaged(r.data); });
+    };
+
+    const handleLogin = (userData) => { setUser(userData); load(userData); };
+    const handleLogout = () => { setUser(null); setTab('home'); setTickets([]); setVotes([]); };
+
+    const sendTicket = async (e) => {
+        e.preventDefault();
+        if (!ticketForm.title) return;
+        await sb.from('building_tickets').insert([{ building_id:user.building_id, unit:user.unit||'عامة', title:ticketForm.title, description:ticketForm.description, status:'pending' }]);
+        showNotif('success', '✅ تم إرسال بلاغ الصيانة بنجاح!');
+        setTicketForm({ title:'', description:'' });
+        load(user);
+    };
+
+    const createAccount = async (e) => {
+        e.preventDefault();
+        if (managed.length >= (user.allowed_units||0)) { showNotif('error','⚠️ استهلكت كامل الوحدات المتاحة'); return; }
+        await sb.from('building_accounts').insert([{ building_id:user.building_id, unit:hoaForm.unit, password_code:hoaForm.password_code, role:hoaForm.role, created_by:user.password_code }]);
+        showNotif('success', '🎉 تم إنشاء الحساب بنجاح!');
+        setHoaForm({ unit:'', password_code:'', role:'owner' });
+        load(user);
+    };
+
+    const castVote = async (voteId, option) => {
+        if (votedMap[voteId]) return;
+        await sb.from('vote_responses').insert([{ vote_id:voteId, unit:user.unit||'مدير', selected_option:option }]);
+        setVotedMap(prev=>({ ...prev, [voteId]:option }));
+        showNotif('success', '🗳️ تم تسجيل تصويتك بنجاح!');
+    };
+
+    const sendVisitorRequest = async (e) => {
+        e.preventDefault();
+        const entry = { unit:user.unit||'—', visitor_name:visitorForm.name||visitorForm.type, visitor_type:visitorType, note:visitorForm.note, plate:visitorForm.plate, status:'pending', building_id:user.building_id };
+        setVisitorLog(prev=>[{ ...entry, id:Date.now(), time:new Date().toLocaleTimeString('ar') }, ...prev]);
+        showNotif('success','📲 تم إرسال طلب الزيارة للأمن');
+        setVisitorForm({ name:'', type:'visitor', note:'', plate:'' });
+    };
+
+    if (!user) return ce(LoginFlow, { onLogin:handleLogin });
+
+    const roleColor = { owner:'#3b82f6', hoa:'#7c3aed', contractor:'#10b981' }[user.role] || '#3b82f6';
+    const roleLabel = { owner:'مالك وحدة', hoa:'رئيس اتحاد الملاك', contractor:'مقاول صيانة' }[user.role];
+    const pendingTickets = tickets.filter(t=>t.status==='pending').length;
+
+    // Tabs config
+    const tabs = [
+        { id:'home', icon:'🏠', label:'رئيسية' },
+        user.role!=='contractor' && { id:'ticket', icon:'🔧', label:'صيانة' },
+        user.role!=='contractor' && { id:'vote', icon:'🗳️', label:'تصويت' },
+        (user.role==='owner' || user.role==='hoa') && { id:'visitor', icon:'👥', label:'زوار' },
+        user.role==='hoa' && { id:'manage', icon:'👑', label:'إدارة' },
+    ].filter(Boolean);
+
+    // ── HOME ──────────────────────────────────────────────────────────────
+    const HomeTab = () => ce('div', null,
+        ce('div', { className:'hero-banner', style:{background:`linear-gradient(135deg,#1e293b,#334155)`} },
+            ce('h2', null, `أهلاً ${user.role==='hoa'?'رئيس الاتحاد':user.unit?'وحدة '+user.unit:''} 👋`),
+            ce('p', null, `منشأة: ${user.building_id} · ${roleLabel}`)
+        ),
+        ce('div', { className:'stats-grid' },
+            ce('div', { className:'stat-card', style:{borderTopColor:'#3b82f6'} },
+                ce('span', { className:'s-icon' }, '🔧'),
+                ce('span', { className:'s-val', style:{color:'#3b82f6'} }, tickets.length),
+                ce('div', { className:'s-lbl' }, 'طلبات الصيانة')
+            ),
+            ce('div', { className:'stat-card', style:{borderTopColor: pendingTickets>0?'#ef4444':'#10b981'} },
+                ce('span', { className:'s-icon' }, pendingTickets>0?'⏳':'✅'),
+                ce('span', { className:'s-val', style:{color:pendingTickets>0?'#ef4444':'#10b981'} }, pendingTickets),
+                ce('div', { className:'s-lbl' }, 'معلقة')
+            ),
+            ce('div', { className:'stat-card', style:{borderTopColor:'#6366f1'} },
+                ce('span', { className:'s-icon' }, '🗳️'),
+                ce('span', { className:'s-val', style:{color:'#6366f1'} }, votes.length),
+                ce('div', { className:'s-lbl' }, 'تصويتات نشطة')
+            ),
+            ce('div', { className:'stat-card', style:{borderTopColor:'#10b981'} },
+                ce('span', { className:'s-icon' }, '💰'),
+                ce('span', { className:'s-val', style:{color:'#10b981'} }, '✓'),
+                ce('div', { className:'s-lbl' }, 'الاشتراك مسدد')
+            )
+        ),
+        // Recent tickets
+        tickets.length>0 && ce('div', { className:'card' },
+            ce('div', { className:'card-header' },
+                ce('h3', null, '🔧 آخر طلبات الصيانة'),
+                ce('span', { style:{fontSize:12,color:'#94a3b8'} }, `${tickets.length} طلب`)
+            ),
+            ...tickets.slice(0,3).map(t=>
+                ce('div', { key:t.id, className:'list-item' },
+                    ce('div', { className:'list-item-left' },
+                        ce('div', { className:'list-icon', style:{background:t.status==='pending'?'#fef3c7':'#dcfce7'} }, t.status==='pending'?'⏳':'✅'),
+                        ce('div', null,
+                            ce('div', { className:'list-title' }, t.title),
+                            ce('div', { className:'list-sub' }, `وحدة ${t.unit}`)
+                        )
+                    ),
+                    ce(Badge, { cls: t.status==='pending'?'badge-amber':'badge-green' }, t.status==='pending'?'معلق':'تم الحل')
+                )
+            )
+        ),
+        // Active votes preview
+        votes.length>0 && ce('div', { className:'card' },
+            ce('div', { className:'card-header' }, ce('h3', null, '🗳️ تصويتات تحتاج رأيك')),
+            ce('div', { className:'card-body' },
+                votes.slice(0,1).map(v=>
+                    ce('div', { key:v.id },
+                        ce('div', { style:{fontSize:14,fontWeight:700,color:'#1e293b',marginBottom:12} }, v.question),
+                        votedMap[v.id]
+                            ? ce('div', { className:'voted-label' }, '✓ تم التصويت: '+votedMap[v.id])
+                            : ce('div', { className:'vote-btns' },
+                                ce('button', { className:'vote-btn yes', onClick:()=>castVote(v.id,'موافق') }, '👍 موافق'),
+                                ce('button', { className:'vote-btn no', onClick:()=>castVote(v.id,'معترض') }, '👎 معترض')
+                              )
+                    )
+                )
+            )
+        )
+    );
+
+    // ── TICKET ────────────────────────────────────────────────────────────
+    const TicketTab = () => ce('div', null,
+        ce('div', { className:'card' },
+            ce('div', { className:'card-header' }, ce('h3', null, '🔧 إرسال بلاغ صيانة جديد')),
+            ce('div', { className:'card-body' },
+                ce('form', { onSubmit:sendTicket },
+                    ce('input', { className:'app-input', value:ticketForm.title, onChange:e=>setTicketForm({...ticketForm,title:e.target.value}), placeholder:'عنوان المشكلة...', required:true }),
+                    ce('textarea', { className:'app-input', value:ticketForm.description, onChange:e=>setTicketForm({...ticketForm,description:e.target.value}), placeholder:'وصف المشكلة والموقع...' }),
+                    ce('button', { type:'submit', className:'btn btn-red' }, '🚀 إرسال البلاغ')
+                )
+            )
+        ),
+        tickets.length>0 && ce('div', { className:'card' },
+            ce('div', { className:'card-header' },
+                ce('h3', null, 'سجل الطلبات'),
+                ce(Badge, { cls:'badge-blue' }, tickets.length+' طلب')
+            ),
+            ...tickets.map(t=>
+                ce('div', { key:t.id, className:'list-item' },
+                    ce('div', { className:'list-item-left' },
+                        ce('div', { className:'list-icon', style:{background:t.status==='pending'?'#fef3c7':'#dcfce7'} }, t.status==='pending'?'⏳':'✅'),
+                        ce('div', null,
+                            ce('div', { className:'list-title' }, t.title),
+                            ce('div', { className:'list-sub' }, t.description||'—')
+                        )
+                    ),
+                    ce(Badge, { cls: t.status==='pending'?'badge-amber':'badge-green' }, t.status==='pending'?'معلق':'تم الحل')
+                )
+            )
+        )
+    );
+
+    // ── VOTE ─────────────────────────────────────────────────────────────
+    const VoteTab = () => ce('div', null,
+        votes.length===0
+            ? ce('div', { className:'card' }, ce('div', { className:'card-body', style:{textAlign:'center',padding:30} },
+                ce('div', { style:{fontSize:40,marginBottom:12} }, '🗳️'),
+                ce('div', { style:{color:'#94a3b8',fontSize:14} }, 'لا توجد تصويتات نشطة حالياً')
+              ))
+            : votes.map(v=>
+                ce('div', { key:v.id, className:'vote-card' },
+                    ce('div', { className:'vote-q' }, v.question),
+                    votedMap[v.id]
+                        ? ce('div', null,
+                            ce('div', { className:'voted-label' }, '✅ تم تسجيل تصويتك: '+votedMap[v.id]),
+                            ce('div', { style:{marginTop:8,display:'flex',gap:8} },
+                                ce('div', { style:{flex:1,background:'#dcfce7',borderRadius:10,padding:'8px 12px',fontSize:12,fontWeight:700,color:'#16a34a',textAlign:'center'} }, '👍 موافق'),
+                                ce('div', { style:{flex:1,background:'#fee2e2',borderRadius:10,padding:'8px 12px',fontSize:12,fontWeight:700,color:'#dc2626',textAlign:'center'} }, '👎 معترض')
+                            )
+                          )
+                        : ce('div', { className:'vote-btns' },
+                            ce('button', { className:'vote-btn yes', onClick:()=>castVote(v.id,'موافق') }, '👍 موافق'),
+                            ce('button', { className:'vote-btn no', onClick:()=>castVote(v.id,'معترض') }, '👎 معترض')
+                          )
+                )
+              )
+    );
+
+    // ── VISITOR ───────────────────────────────────────────────────────────
+    const VisitorTab = () => {
+        const types = [
+            { key:'visitor', icon:'👤', label:'زائر عادي' },
+            { key:'delivery', icon:'📦', label:'ديلفري / توصيل' },
+            { key:'service', icon:'🔧', label:'خدمات / صيانة' },
+            { key:'preapproved', icon:'✅', label:'مسموح مسبقاً' },
+        ];
+        return ce('div', null,
+            ce('div', { className:'card' },
+                ce('div', { className:'card-header' }, ce('h3', null, '👥 إضافة زيارة أو طلب دخول')),
+                ce('div', { className:'card-body' },
+                    ce('div', { className:'visitor-type-grid' },
+                        ...types.map(tp=>
+                            ce('button', { key:tp.key, className:`visitor-type-btn ${visitorType===tp.key?'sel':''}`,
+                                onClick:()=>setVisitorType(tp.key) },
+                                ce('div', { style:{fontSize:24,marginBottom:4} }, tp.icon),
+                                ce('div', { style:{fontSize:12,fontWeight:700,color:'#1e293b'} }, tp.label)
+                            )
+                        )
+                    ),
+                    ce('form', { onSubmit:sendVisitorRequest },
+                        visitorType!=='delivery' && visitorType!=='preapproved' &&
+                            ce('input', { className:'app-input', value:visitorForm.name, onChange:e=>setVisitorForm({...visitorForm,name:e.target.value}), placeholder:'اسم الزائر...' }),
+                        visitorType==='delivery' &&
+                            ce('div', null,
+                                ce('div', { style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10} },
+                                    ...['أمازون','نون','جاهز','هنقرستيشن','مرسول'].map(co=>
+                                        ce('button', { key:co, type:'button',
+                                            style:{background:visitorForm.name===co?'#fef3c7':'#f8fafc',border:`1px solid ${visitorForm.name===co?'#f59e0b':'#e2e8f0'}`,borderRadius:20,padding:'5px 12px',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:600,color:visitorForm.name===co?'#d97706':'#64748b'},
+                                            onClick:()=>setVisitorForm({...visitorForm,name:co}) }, co)
+                                    )
+                                )
+                            ),
+                        ce('input', { className:'app-input', value:visitorForm.plate, onChange:e=>setVisitorForm({...visitorForm,plate:e.target.value}), placeholder:'رقم اللوحة (اختياري)...' }),
+                        ce('input', { className:'app-input', value:visitorForm.note, onChange:e=>setVisitorForm({...visitorForm,note:e.target.value}), placeholder:'ملاحظة...' }),
+                        ce('button', { type:'submit', className:'btn btn-primary' }, '📲 إرسال طلب للأمن')
+                    )
+                )
+            ),
+            visitorLog.length>0 && ce('div', { className:'card' },
+                ce('div', { className:'card-header' }, ce('h3', null, '📋 سجل الزيارات')),
+                ...visitorLog.map(v=>
+                    ce('div', { key:v.id, className:'list-item' },
+                        ce('div', { className:'list-item-left' },
+                            ce('div', { className:'list-icon', style:{background:'#eff6ff'} }, { visitor:'👤', delivery:'📦', service:'🔧', preapproved:'✅' }[v.visitor_type]||'👤'),
+                            ce('div', null,
+                                ce('div', { className:'list-title' }, v.visitor_name),
+                                ce('div', { className:'list-sub' }, v.time+(v.plate&&v.plate!=='—'?' · 🚗 '+v.plate:''))
+                            )
+                        ),
+                        ce(Badge, { cls: v.status==='approved'?'badge-green':v.status==='rejected'?'badge-red':'badge-amber' },
+                            v.status==='approved'?'✓ مسموح':v.status==='rejected'?'✗ مرفوض':'⏳ ينتظر')
+                    )
+                )
+            )
+        );
+    };
+
+    // ── HOA MANAGE ────────────────────────────────────────────────────────
+    const ManageTab = () => {
+        const used = managed.length;
+        const total = user.allowed_units || 0;
+        const pct = total>0 ? Math.round((used/total)*100) : 0;
+        return ce('div', null,
+            ce('div', { className:'card' },
+                ce('div', { className:'card-header' }, ce('h3', null, '📊 استخدام الوحدات')),
+                ce('div', { className:'card-body' },
+                    ce('div', { style:{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:13} },
+                        ce('span', { style:{color:'#64748b'} }, 'مضافة'),
+                        ce('span', { style:{fontWeight:800,color:'#3b82f6'} }, `${used} / ${total}`)
+                    ),
+                    ce('div', { className:'prog-wrap' },
+                        ce('div', { className:'prog-bar', style:{width:pct+'%', background:pct>=90?'#ef4444':'#3b82f6'} })
+                    ),
+                    ce('div', { style:{fontSize:11,color:'#94a3b8',marginTop:6,textAlign:'left'} }, pct+'% مستخدم')
+                )
+            ),
+            ce('div', { className:'card' },
+                ce('div', { className:'card-header' }, ce('h3', null, '➕ إضافة حساب جديد')),
+                ce('div', { className:'card-body' },
+                    ce('form', { onSubmit:createAccount },
+                        ce('input', { className:'app-input', value:hoaForm.unit, onChange:e=>setHoaForm({...hoaForm,unit:e.target.value}), placeholder:'رقم الشقة / الوحدة', required:true }),
+                        ce('input', { className:'app-input', value:hoaForm.password_code, onChange:e=>setHoaForm({...hoaForm,password_code:e.target.value}), placeholder:'الرمز السري للدخول', required:true }),
+                        ce('select', { className:'app-input', value:hoaForm.role, onChange:e=>setHoaForm({...hoaForm,role:e.target.value}),style:{marginBottom:10} },
+                            ce('option', { value:'owner' }, '👤 مالك وحدة'),
+                            ce('option', { value:'contractor' }, '🔧 مقاول صيانة')
+                        ),
+                        ce('button', { type:'submit', className:'btn btn-green' }, '💾 توليد وحفظ الحساب')
+                    )
+                )
+            ),
+            managed.length>0 && ce('div', { className:'card' },
+                ce('div', { className:'card-header' }, ce('h3', null, 'الحسابات المضافة')),
+                ...managed.map(m=>
+                    ce('div', { key:m.id, className:'list-item' },
+                        ce('div', { className:'list-item-left' },
+                            ce('div', { className:'list-icon', style:{background:'#eff6ff'} }, m.role==='owner'?'🏠':'🔧'),
+                            ce('div', null,
+                                ce('div', { className:'list-title' }, 'وحدة '+m.unit),
+                                ce('div', { className:'list-sub' }, m.role==='owner'?'مالك':'مقاول')
+                            )
+                        ),
+                        ce(Badge, { cls:'badge-blue' }, m.role==='owner'?'مالك':'مقاول')
+                    )
+                )
+            )
+        );
+    };
+
+    const tabContent = {
+        home: ce(HomeTab), ticket: ce(TicketTab),
+        vote: ce(VoteTab), visitor: ce(VisitorTab), manage: ce(ManageTab)
+    };
+
+    return ce('div', { className:'app-shell' },
+        // Top nav
+        ce('div', { className:'top-nav' },
+            ce('div', { className:'nav-brand' },
+                ce('span', null, '🏢'),
+                ce('span', null, 'المبنى الرقمي'),
+                ce('span', { className:'nav-badge', style:{background:roleColor+'25',color:roleColor} }, roleLabel)
+            ),
+            ce('div', { className:'nav-actions' },
+                ce('button', { className:'nav-btn danger', onClick:handleLogout }, '🚪 خروج')
+            )
+        ),
+        // Content
+        ce('div', { className:'content' },
+            notif.msg && ce(Alert, { type:notif.type, msg:notif.msg }),
+            tabContent[tab] || ce(HomeTab)
+        ),
+        // Bottom nav
+        ce('div', { className:'bottom-nav' },
+            ...tabs.map(tb=>
+                ce('button', { key:tb.id, className:`bottom-tab ${tab===tb.id?'active':''}`, onClick:()=>setTab(tb.id) },
+                    ce('span', { className:'tab-icon' }, tb.icon),
+                    tb.label
+                )
+            )
+        )
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(ce(App));
+</script>
 </body>
 </html>

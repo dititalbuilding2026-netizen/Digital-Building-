@@ -3,117 +3,433 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المبنى الرقمي - لوحة الإدارة المحمية</title>
+    <title>المبنى الرقمي - لوحة الإدارة</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans Arabic', sans-serif; background-color: #f0f4f8; margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
-        .card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); width: 100%; max-width: 550px; box-sizing: border-box; margin-bottom: 16px; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
-        button { padding: 10px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; }
-        .btn-blue { background: #3b82f6; color: white; width: 100%; }
-        .btn-tabs { background: none; color: #64748b; padding: 12px; border-bottom: 3px solid transparent; border-radius: 0; font-size: 14px; }
-        .active-tab { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Noto Sans Arabic', sans-serif; background: #f0f4f8; margin: 0; padding: 0; min-height: 100vh; }
+
+        /* ── Auth screen ─────────────────────── */
+        .auth-wrap { min-height:100vh; background:linear-gradient(135deg,#0f1923,#1a2940,#0d2137); display:flex; align-items:center; justify-content:center; padding:20px; }
+        .auth-card { background:#fff; border-radius:24px; padding:40px 32px; width:100%; max-width:380px; box-shadow:0 24px 80px rgba(0,0,0,.3); text-align:center; }
+        .auth-card h2 { margin:16px 0 6px; font-size:22px; color:#1e293b; }
+        .auth-card p { color:#94a3b8; font-size:13px; margin:0 0 28px; }
+
+        /* ── Layout ─────────────────────────── */
+        .shell { display:flex; min-height:100vh; }
+        .sidebar { width:220px; background:#1e293b; flex-shrink:0; position:fixed; top:0; bottom:0; right:0; overflow-y:auto; z-index:100; }
+        .sidebar-logo { padding:24px 16px 16px; border-bottom:1px solid #334155; }
+        .sidebar-logo h3 { color:#fff; margin:0 0 2px; font-size:16px; font-weight:900; }
+        .sidebar-logo p { color:#94a3b8; font-size:11px; margin:0; }
+        .sidebar-nav { padding:12px 8px; }
+        .sidebar-item { display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:12px; cursor:pointer; color:#94a3b8; font-size:13px; font-weight:600; transition:all .2s; margin-bottom:4px; border:none; background:none; font-family:inherit; width:100%; }
+        .sidebar-item:hover { background:rgba(255,255,255,.06); color:#fff; }
+        .sidebar-item.active { background:rgba(59,130,246,.2); color:#60a5fa; }
+        .sidebar-item .s-icon { font-size:18px; }
+        .sidebar-badge { background:#ef4444; color:#fff; border-radius:99px; padding:2px 8px; font-size:10px; font-weight:800; margin-right:auto; }
+
+        .main { margin-right:220px; padding:24px; min-height:100vh; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+        .topbar h1 { margin:0; font-size:20px; font-weight:800; color:#1e293b; }
+        .topbar-actions { display:flex; gap:10px; }
+
+        /* ── Cards ──────────────────────────── */
+        .card { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:16px; overflow:hidden; }
+        .card-header { padding:16px 20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; }
+        .card-header h3 { margin:0; font-size:14px; font-weight:700; color:#1e293b; }
+        .card-body { padding:18px 20px; }
+
+        /* Stats */
+        .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+        .stat-box { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.05); border-top:3px solid; }
+        .stat-box .st-n { font-size:26px; font-weight:800; display:block; }
+        .stat-box .st-l { font-size:12px; color:#64748b; margin-top:3px; }
+
+        /* Table */
+        table { width:100%; border-collapse:collapse; }
+        th { padding:10px 14px; text-align:right; font-size:11px; color:#64748b; font-weight:700; background:#f8fafc; }
+        td { padding:12px 14px; font-size:13px; color:#1e293b; border-bottom:1px solid #f8fafc; vertical-align:middle; }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:#fafbff; }
+
+        /* Inputs */
+        .f-group { margin-bottom:12px; }
+        .f-group label { font-size:11px; font-weight:700; color:#64748b; display:block; margin-bottom:5px; }
+        .f-group input, .f-group select, .f-group textarea { width:100%; padding:11px 13px; border:2px solid #e2e8f0; border-radius:11px; font-family:inherit; font-size:13px; outline:none; transition:border .2s; }
+        .f-group input:focus, .f-group select:focus { border-color:#3b82f6; }
+        .f-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+        /* Buttons */
+        .btn { padding:10px 18px; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-family:inherit; font-size:13px; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+        .btn-primary { background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; }
+        .btn-green { background:linear-gradient(135deg,#10b981,#059669); color:#fff; }
+        .btn-amber { background:#fef3c7; color:#d97706; }
+        .btn-red-soft { background:#fee2e2; color:#dc2626; }
+        .btn-sm { padding:6px 12px; font-size:11px; border-radius:8px; }
+        .btn-full { width:100%; justify-content:center; padding:13px; border-radius:50px; }
+
+        /* Badge */
+        .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+        .bg-green { background:#dcfce7; color:#16a34a; }
+        .bg-amber { background:#fef3c7; color:#d97706; }
+        .bg-red { background:#fee2e2; color:#dc2626; }
+        .bg-blue { background:#eff6ff; color:#3b82f6; }
+        .bg-purple { background:#f5f3ff; color:#7c3aed; }
+
+        /* Alert */
+        .alert { padding:12px 16px; border-radius:11px; font-size:13px; font-weight:600; margin-bottom:14px; }
+        .alert-success { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+        .alert-error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
     </style>
 </head>
 <body>
+<div id="admin-root"></div>
+<script>
+const { useState, useEffect } = React;
+const ce = React.createElement;
 
-    <div id="admin-root" style="width: 100%; max-width: 550px;"></div>
+const sb = window.supabase.createClient(
+    'https://qfdkuzlndzlydcrwboqi.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY'
+);
 
-    <script>
-        const { useState, useEffect } = React;
-        const supabaseUrl = 'https://qfdkuzlndzlydcrwboqi.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+function Badge({ cls, children }) { return ce('span', { className:`badge ${cls}` }, children); }
 
-        function AdminDashboard() {
-            const [isAuth, setIsAuth] = useState(false);
-            const [passInput, setPassInput] = useState("");
-            const [accounts, setAccounts] = useState([]);
-            const [tickets, setTickets] = useState([]);
-            const [activeTab, setActiveTab] = useState("accounts");
-            const [form, setForm] = useState({ building_id: "", unit: "", password_code: "", role: "owner", allowed_units: 0 });
-            const [voteQuestion, setVoteQuestion] = useState("");
-            const [editingId, setEditingId] = useState(null);
+function Admin() {
+    const [auth, setAuth] = useState(false);
+    const [pass, setPass] = useState('');
+    const [tab, setTab] = useState('dashboard');
+    const [accounts, setAccounts] = useState([]);
+    const [tickets, setTickets] = useState([]);
+    const [votes, setVotes] = useState([]);
+    const [form, setForm] = useState({ building_id:'', unit:'', password_code:'', role:'owner', allowed_units:0 });
+    const [editId, setEditId] = useState(null);
+    const [voteQ, setVoteQ] = useState('');
+    const [notif, setNotif] = useState({ type:'', msg:'' });
+    const [search, setSearch] = useState('');
+    const [filterRole, setFilterRole] = useState('all');
 
-            useEffect(() => { if (isAuth) { fetchAccounts(); fetchTickets(); } }, [isAuth]);
+    const showNotif = (type, msg) => { setNotif({ type, msg }); setTimeout(()=>setNotif({type:'',msg:''}),4000); };
 
-            const fetchAccounts = async () => { const { data } = await supabase.from("building_accounts").select("*").order("created_at", { ascending: false }); setAccounts(data || []); };
-            const fetchTickets = async () => { const { data } = await supabase.from("building_tickets").select("*").order("created_at", { ascending: false }); setTickets(data || []); };
+    useEffect(() => {
+        if (auth) { fetchAll(); }
+    }, [auth]);
 
-            const handleSaveAccount = async (e) => {
-                e.preventDefault();
-                if (editingId) {
-                    await supabase.from("building_accounts").update(form).eq("id", editingId); setEditingId(null);
-                } else {
-                    await supabase.from("building_accounts").insert([form]);
-                }
-                fetchAccounts(); setForm({ building_id: "", unit: "", password_code: "", role: "owner", allowed_units: 0 });
-                alert("🎉 تم حفظ العملية بنجاح!");
-            };
+    const fetchAll = async () => {
+        const [a, t, v] = await Promise.all([
+            sb.from('building_accounts').select('*').order('created_at',{ascending:false}),
+            sb.from('building_tickets').select('*').order('created_at',{ascending:false}),
+            sb.from('building_votes').select('*').order('created_at',{ascending:false}),
+        ]);
+        if (a.data) setAccounts(a.data);
+        if (t.data) setTickets(t.data);
+        if (v.data) setVotes(v.data);
+    };
 
-            const handleDelete = async (id) => {
-                if (confirm("🚨 هل أنت متأكد من حذف الحساب نهائياً؟")) {
-                    await supabase.from("building_accounts").delete().eq("id", id); fetchAccounts();
-                }
-            };
-
-            if (!isAuth) {
-                return React.createElement("div", { className: "card", style: { textAlign: "center", marginTop: "100px" } },
-                    React.createElement("h2", null, "🔒 لوحة الأدمن المحمية"),
-                    React.createElement("input", { type: "password", placeholder: "أدخل كلمة السر المؤقتة", value: passInput, onChange: (e)=>setPassInput(e.target.value) }),
-                    React.createElement("button", { onClick: () => { if(passInput==='Db2026$$') setIsAuth(true); else alert('خطأ!'); }, className: "btn-blue" }, "🔓 دخول")
-                );
-            }
-
-            return React.createElement("div", null,
-                React.createElement("div", { className: "card", style: { display: "flex", gap: 10, justifyContent: "center", padding: 4 } },
-                    React.createElement("button", { onClick: ()=>setActiveTab("accounts"), className: `btn-tabs ${activeTab==='accounts'?'active-tab':''}` }, `👥 الحسابات (${accounts.length})`),
-                    React.createElement("button", { onClick: ()=>setActiveTab("tickets"), className: `btn-tabs ${activeTab==='tickets'?'active-tab':''}` }, `🛠️ الصيانة (${tickets.length})`),
-                    React.createElement("button", { onClick: ()=>setActiveTab("votes"), className: `btn-tabs ${activeTab==='votes'?'active-tab':''}` }, "🗳️ التصويت")
-                ),
-                activeTab === 'accounts' && React.createElement("div", null,
-                    React.createElement("form", { onSubmit: handleSaveAccount, className: "card" },
-                        React.createElement("h3", null, editingId ? "✏️ تعديل الحساب" : "➕ إضافة حساب جديد"),
-                        React.createElement("input", { type: "text", value: form.building_id, placeholder: "اسم / رقم المبنى", onChange: (e)=>setForm({...form, building_id: e.target.value}), required: true }),
-                        React.createElement("input", { type: "text", value: form.unit, placeholder: "رقم الشقة (اتركه فارغاً للمقاول/المدير)", onChange: (e)=>setForm({...form, unit: e.target.value}) }),
-                        React.createElement("input", { type: "text", value: form.password_code, placeholder: "الرمز السري", onChange: (e)=>setForm({...form, password_code: e.target.value}), required: true }),
-                        React.createElement("select", { value: form.role, onChange: (e)=>setForm({...form, role: e.target.value}) },
-                            React.createElement("option", { value: "owner" }, "👤 مالك وحدة"),
-                            React.createElement("option", { value: "hoa" }, "👑 مدير اتحاد الملاك"),
-                            React.createElement("option", { value: "contractor" }, "🔧 مقاول صيانة")
-                        ),
-                        form.role === 'hoa' && React.createElement("input", { type: "number", value: form.allowed_units, placeholder: "عدد الوحدات المسموحة له", onChange: (e)=>setForm({...form, allowed_units: parseInt(e.target.value)||0}) }),
-                        React.createElement("button", { type: "submit", className: "btn-blue" }, "💾 حفظ وتوليد الحساب")
-                    ),
-                    accounts.map(acc => React.createElement("div", { key: acc.id, className: "card" },
-                        React.createElement("strong", null, `🏢 منشأة: ${acc.building_id} | ${acc.unit?`🚪 شقة: ${acc.unit}`:'إدارة عامة'} (${acc.role})`),
-                        React.createElement("p", { style: { margin: "4px 0" } }, `🔑 الرمز السري: ${acc.password_code} ${acc.role==='hoa'?`| 📊 شقق مسموحة: ${acc.allowed_units}`:''}`),
-                        React.createElement("div", { style: { textAlign: "left" } },
-                            React.createElement("button", { onClick: ()=>{ setEditingId(acc.id); setForm(acc); }, style: { background: "#f1f5f9", color: "#f59e0b", marginLeft: 6 } }, "✏️ تعديل"),
-                            React.createElement("button", { onClick: ()=>handleDelete(acc.id), style: { background: "#fef2f2", color: "#ef4444" } }, "🗑️ حذف")
-                        )
-                    ))
-                ),
-                activeTab === 'tickets' && React.createElement("div", null,
-                    tickets.map(t => React.createElement("div", { key: t.id, className: "card", style: { borderRight: `4px solid ${t.status==='pending'?'#ef4444':'#10b981'}` } },
-                        React.createElement("h4", { style: { margin: 0 } }, `🚪 مبنى ${t.building_id} | شقة ${t.unit}`),
-                        React.createElement("p", null, t.title, React.createElement("br", null), React.createElement("small", null, t.description)),
-                        t.status === 'pending' && React.createElement("button", { onClick: async ()=>{ await supabase.from("building_tickets").update({status:'resolved'}).eq('id',t.id); fetchTickets(); }, style: { background: "#10b981", color: "#fff" } }, "⚙️ تم الحل")
-                    ))
-                ),
-                activeTab === 'votes' && React.createElement("form", { onSubmit: async (e)=>{ e.preventDefault(); await supabase.from("building_votes").insert([{ question: voteQuestion, options:['موافق','معترض'] }]); setVoteQuestion(""); alert("📢 نُشر!"); }, className: "card" },
-                    React.createElement("h3", null, "📢 نشر تصويت حي للسكان"),
-                    React.createElement("input", { type: "text", value: voteQuestion, placeholder: "مثال: هل تؤيدون تركيب كاميرات صيانة؟", onChange: (e)=>setVoteQuestion(e.target.value) }),
-                    React.createElement("button", { type: "submit", className: "btn-blue" }, "📢 نشر التصويت فورا")
-                )
-            );
+    const saveAccount = async (e) => {
+        e.preventDefault();
+        if (editId) {
+            await sb.from('building_accounts').update(form).eq('id', editId);
+            setEditId(null);
+            showNotif('success','✅ تم تحديث الحساب بنجاح');
+        } else {
+            await sb.from('building_accounts').insert([form]);
+            showNotif('success','🎉 تم إنشاء الحساب بنجاح');
         }
+        setForm({ building_id:'', unit:'', password_code:'', role:'owner', allowed_units:0 });
+        fetchAll();
+    };
 
-        const root = ReactDOM.createRoot(document.getElementById('admin-root'));
-        root.render(React.createElement(AdminDashboard));
-    </script>
+    const deleteAccount = async (id) => {
+        if (!confirm('هل أنت متأكد من حذف هذا الحساب نهائياً؟')) return;
+        await sb.from('building_accounts').delete().eq('id', id);
+        showNotif('success','🗑️ تم الحذف');
+        fetchAll();
+    };
+
+    const resolveTicket = async (id) => {
+        await sb.from('building_tickets').update({ status:'resolved' }).eq('id', id);
+        showNotif('success','✅ تم تحديث حالة التذكرة');
+        fetchAll();
+    };
+
+    const publishVote = async (e) => {
+        e.preventDefault();
+        if (!voteQ) return;
+        await sb.from('building_votes').insert([{ question:voteQ, options:['موافق','معترض'] }]);
+        showNotif('success','📢 تم نشر التصويت بنجاح!');
+        setVoteQ('');
+        fetchAll();
+    };
+
+    // Stats
+    const owners = accounts.filter(a=>a.role==='owner').length;
+    const hoaCount = accounts.filter(a=>a.role==='hoa').length;
+    const contractors = accounts.filter(a=>a.role==='contractor').length;
+    const pending = tickets.filter(t=>t.status==='pending').length;
+
+    // Filtered accounts
+    const filteredAccounts = accounts.filter(a => {
+        const matchSearch = !search || a.building_id?.includes(search) || a.unit?.includes(search);
+        const matchRole = filterRole==='all' || a.role===filterRole;
+        return matchSearch && matchRole;
+    });
+
+    // ── Auth ──────────────────────────────────────────────────────────────
+    if (!auth) return ce('div', { className:'auth-wrap' },
+        ce('div', { className:'auth-card' },
+            ce('div', { style:{fontSize:48} }, '🔒'),
+            ce('h2', null, 'لوحة إدارة المبنى الرقمي'),
+            ce('p', null, 'محمية بكلمة سر المدير'),
+            ce('input', { type:'password', value:pass, onChange:e=>setPass(e.target.value),
+                placeholder:'كلمة سر المدير...', onKeyDown:e=>e.key==='Enter'&&(pass==='Db2026$$'?setAuth(true):alert('❌ كلمة السر غير صحيحة')),
+                style:{width:'100%',padding:'13px',border:'2px solid #e2e8f0',borderRadius:12,fontFamily:'inherit',fontSize:14,outline:'none',marginBottom:14} }),
+            ce('button', { onClick:()=>{ if(pass==='Db2026$$') setAuth(true); else alert('❌ كلمة السر غير صحيحة'); },
+                className:'btn btn-primary btn-full' }, '🔓 دخول لوحة الإدارة')
+        )
+    );
+
+    // ── Sidebar items ─────────────────────────────────────────────────────
+    const navItems = [
+        { id:'dashboard', icon:'📊', label:'لوحة التحكم' },
+        { id:'accounts', icon:'👥', label:'الحسابات', count:accounts.length },
+        { id:'tickets', icon:'🔧', label:'الصيانة', count:pending, countColor:'#ef4444' },
+        { id:'votes', icon:'🗳️', label:'التصويتات', count:votes.length },
+        { id:'add', icon:'➕', label:'إضافة حساب' },
+    ];
+
+    // ── Tab content ───────────────────────────────────────────────────────
+
+    // Dashboard
+    const Dashboard = () => ce('div', null,
+        ce('div', { className:'stats-row' },
+            ...[
+                { n:accounts.length, l:'إجمالي الحسابات', c:'#3b82f6', i:'👥' },
+                { n:pending, l:'طلبات صيانة معلقة', c: pending>0?'#ef4444':'#10b981', i:'🔧' },
+                { n:votes.length, l:'التصويتات', c:'#6366f1', i:'🗳️' },
+                { n:hoaCount, l:'اتحادات ملاك', c:'#7c3aed', i:'👑' },
+            ].map((s,i) => ce('div', { key:i, className:'stat-box', style:{borderTopColor:s.c} },
+                ce('div', { style:{fontSize:24,marginBottom:8} }, s.i),
+                ce('span', { className:'st-n', style:{color:s.c} }, s.n),
+                ce('div', { className:'st-l' }, s.l)
+            ))
+        ),
+        // recent tickets
+        ce('div', { className:'card' },
+            ce('div', { className:'card-header' },
+                ce('h3', null, '🔧 آخر طلبات الصيانة'),
+                ce('span', { style:{fontSize:12,color:'#94a3b8'} }, pending+' معلق')
+            ),
+            tickets.length===0
+                ? ce('div', { className:'card-body', style:{textAlign:'center',color:'#94a3b8',fontSize:13} }, 'لا توجد طلبات صيانة')
+                : ce('table', null,
+                    ce('thead', null, ce('tr', null,
+                        ...['المنشأة','الوحدة','العنوان','الحالة','إجراء'].map(h => ce('th', { key:h }, h))
+                    )),
+                    ce('tbody', null,
+                        ...tickets.slice(0,5).map(t => ce('tr', { key:t.id },
+                            ce('td', null, t.building_id),
+                            ce('td', null, t.unit),
+                            ce('td', null, t.title),
+                            ce('td', null, ce(Badge, { cls: t.status==='pending'?'bg-amber':'bg-green' }, t.status==='pending'?'معلق':'تم الحل')),
+                            ce('td', null, t.status==='pending' && ce('button', { className:'btn btn-green btn-sm', onClick:()=>resolveTicket(t.id) }, '✓ حل'))
+                        ))
+                    )
+                )
+        ),
+        // Accounts summary
+        ce('div', { className:'card' },
+            ce('div', { className:'card-header' }, ce('h3', null, '👥 توزيع الحسابات')),
+            ce('div', { className:'card-body' },
+                ce('div', { style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12} },
+                    ...[
+                        { l:'ملاك وحدات', n:owners, c:'#3b82f6', cls:'bg-blue', i:'🏠' },
+                        { l:'رؤساء اتحاد', n:hoaCount, c:'#7c3aed', cls:'bg-purple', i:'👑' },
+                        { l:'مقاولون', n:contractors, c:'#10b981', cls:'bg-green', i:'🔧' },
+                    ].map((item,i) => ce('div', { key:i, style:{textAlign:'center',background:'#f8fafc',borderRadius:12,padding:'14px'} },
+                        ce('div', { style:{fontSize:26,marginBottom:6} }, item.i),
+                        ce('div', { style:{fontSize:22,fontWeight:800,color:item.c} }, item.n),
+                        ce('div', { style:{fontSize:11,color:'#64748b',marginTop:3} }, item.l)
+                    ))
+                )
+            )
+        )
+    );
+
+    // Accounts list
+    const AccountsList = () => ce('div', null,
+        ce('div', { className:'card' },
+            ce('div', { className:'card-body' },
+                ce('div', { style:{display:'flex',gap:10,marginBottom:0} },
+                    ce('input', { value:search, onChange:e=>setSearch(e.target.value),
+                        placeholder:'🔍 بحث برقم المبنى أو الوحدة...',
+                        style:{flex:1,padding:'10px 13px',border:'2px solid #e2e8f0',borderRadius:11,fontFamily:'inherit',fontSize:13,outline:'none'} }),
+                    ce('select', { value:filterRole, onChange:e=>setFilterRole(e.target.value),
+                        style:{padding:'10px 13px',border:'2px solid #e2e8f0',borderRadius:11,fontFamily:'inherit',fontSize:13,outline:'none'} },
+                        ce('option',{value:'all'},'كل الأدوار'),
+                        ce('option',{value:'owner'},'مالك'),
+                        ce('option',{value:'hoa'},'رئيس اتحاد'),
+                        ce('option',{value:'contractor'},'مقاول')
+                    )
+                )
+            )
+        ),
+        ce('div', { className:'card' },
+            filteredAccounts.length===0
+                ? ce('div', { className:'card-body', style:{textAlign:'center',color:'#94a3b8',padding:30} }, 'لا توجد نتائج')
+                : ce('table', null,
+                    ce('thead', null, ce('tr', null,
+                        ...['المنشأة','الوحدة','الدور','الرمز السري','الوحدات المسموحة','إجراءات'].map(h=>ce('th',{key:h},h))
+                    )),
+                    ce('tbody', null,
+                        ...filteredAccounts.map(acc => ce('tr', { key:acc.id },
+                            ce('td', null, ce('strong',null,acc.building_id)),
+                            ce('td', null, acc.unit || ce('span',{style:{color:'#94a3b8'}},'—')),
+                            ce('td', null, ce(Badge, { cls: acc.role==='owner'?'bg-blue':acc.role==='hoa'?'bg-purple':'bg-green' },
+                                acc.role==='owner'?'👤 مالك':acc.role==='hoa'?'👑 رئيس اتحاد':'🔧 مقاول')),
+                            ce('td', null, ce('code',{style:{background:'#f1f5f9',padding:'3px 8px',borderRadius:6,fontSize:12}},acc.password_code)),
+                            ce('td', null, acc.role==='hoa'?acc.allowed_units||0:ce('span',{style:{color:'#94a3b8'}},'—')),
+                            ce('td', null,
+                                ce('div',{style:{display:'flex',gap:6}},
+                                    ce('button',{className:'btn btn-amber btn-sm',onClick:()=>{ setEditId(acc.id); setForm(acc); setTab('add'); }},'✏️'),
+                                    ce('button',{className:'btn btn-red-soft btn-sm',onClick:()=>deleteAccount(acc.id)},'🗑️')
+                                )
+                            )
+                        ))
+                    )
+                )
+        )
+    );
+
+    // Tickets
+    const Tickets = () => ce('div', null,
+        ce('div', { className:'card' },
+            ce('div', { className:'card-header' },
+                ce('h3', null, '🔧 طلبات الصيانة'),
+                ce('span', { className:`badge ${pending>0?'bg-red':'bg-green'}` }, pending+' معلق')
+            ),
+            tickets.length===0
+                ? ce('div',{className:'card-body',style:{textAlign:'center',color:'#94a3b8',padding:30}},'لا توجد طلبات')
+                : ce('table', null,
+                    ce('thead',null,ce('tr',null,...['المنشأة','الوحدة','العنوان','التفاصيل','الحالة','إجراء'].map(h=>ce('th',{key:h},h)))),
+                    ce('tbody',null,...tickets.map(t=>ce('tr',{key:t.id},
+                        ce('td',null,t.building_id),
+                        ce('td',null,t.unit),
+                        ce('td',null,ce('strong',null,t.title)),
+                        ce('td',null,ce('span',{style:{color:'#94a3b8',fontSize:12}},t.description||'—')),
+                        ce('td',null,ce(Badge,{cls:t.status==='pending'?'bg-amber':'bg-green'},t.status==='pending'?'⏳ معلق':'✅ محلول')),
+                        ce('td',null,t.status==='pending'&&ce('button',{className:'btn btn-green btn-sm',onClick:()=>resolveTicket(t.id)},'✓ حل'))
+                    )))
+                )
+        )
+    );
+
+    // Votes
+    const Votes = () => ce('div', null,
+        ce('div',{className:'card'},
+            ce('div',{className:'card-header'},ce('h3',null,'📢 نشر تصويت جديد')),
+            ce('div',{className:'card-body'},
+                ce('form',{onSubmit:publishVote},
+                    ce('input',{value:voteQ,onChange:e=>setVoteQ(e.target.value),placeholder:'مثال: هل تؤيدون تركيب كاميرات مراقبة إضافية؟',
+                        style:{width:'100%',padding:'12px 14px',border:'2px solid #e2e8f0',borderRadius:12,fontFamily:'inherit',fontSize:13,outline:'none',marginBottom:12}}),
+                    ce('button',{type:'submit',className:'btn btn-primary btn-full'},'📢 نشر التصويت فوراً')
+                )
+            )
+        ),
+        votes.length>0 && ce('div',{className:'card'},
+            ce('div',{className:'card-header'},ce('h3',null,'التصويتات المنشورة')),
+            ce('table',null,
+                ce('thead',null,ce('tr',null,...['السؤال','التاريخ','إجراء'].map(h=>ce('th',{key:h},h)))),
+                ce('tbody',null,...votes.map(v=>ce('tr',{key:v.id},
+                    ce('td',null,ce('strong',null,v.question)),
+                    ce('td',null,ce('span',{style:{color:'#94a3b8',fontSize:12}},v.created_at?new Date(v.created_at).toLocaleDateString('ar'):'—')),
+                    ce('td',null,ce('button',{className:'btn btn-red-soft btn-sm',onClick:async()=>{ if(confirm('حذف التصويت؟')){ await sb.from('building_votes').delete().eq('id',v.id); fetchAll(); } }},'🗑️'))
+                )))
+            )
+        )
+    );
+
+    // Add/Edit account
+    const AddAccount = () => ce('div', null,
+        ce('div',{className:'card'},
+            ce('div',{className:'card-header'},ce('h3',null,editId?'✏️ تعديل الحساب':'➕ إضافة حساب جديد')),
+            ce('div',{className:'card-body'},
+                ce('form',{onSubmit:saveAccount},
+                    ce('div',{className:'f-row'},
+                        ce('div',{className:'f-group'},
+                            ce('label',null,'رقم / اسم المنشأة'),
+                            ce('input',{value:form.building_id,onChange:e=>setForm({...form,building_id:e.target.value}),placeholder:'مثال: الشقاف 1',required:true})
+                        ),
+                        ce('div',{className:'f-group'},
+                            ce('label',null,'رقم الوحدة (اتركه فارغاً للمقاول/المدير)'),
+                            ce('input',{value:form.unit,onChange:e=>setForm({...form,unit:e.target.value}),placeholder:'مثال: C-206'})
+                        )
+                    ),
+                    ce('div',{className:'f-row'},
+                        ce('div',{className:'f-group'},
+                            ce('label',null,'الرمز السري'),
+                            ce('input',{value:form.password_code,onChange:e=>setForm({...form,password_code:e.target.value}),placeholder:'اختر رمزاً سرياً',required:true})
+                        ),
+                        ce('div',{className:'f-group'},
+                            ce('label',null,'الدور'),
+                            ce('select',{value:form.role,onChange:e=>setForm({...form,role:e.target.value})},
+                                ce('option',{value:'owner'},'👤 مالك وحدة'),
+                                ce('option',{value:'hoa'},'👑 رئيس اتحاد الملاك'),
+                                ce('option',{value:'contractor'},'🔧 مقاول صيانة')
+                            )
+                        )
+                    ),
+                    form.role==='hoa' && ce('div',{className:'f-group'},
+                        ce('label',null,'عدد الوحدات المسموح بإضافتها'),
+                        ce('input',{type:'number',value:form.allowed_units,onChange:e=>setForm({...form,allowed_units:parseInt(e.target.value)||0}),placeholder:'مثال: 50'})
+                    ),
+                    ce('div',{style:{display:'flex',gap:10,marginTop:8}},
+                        ce('button',{type:'submit',className:'btn btn-primary',style:{flex:1,justifyContent:'center',padding:'13px'}},
+                            editId?'💾 حفظ التعديلات':'💾 إنشاء الحساب'),
+                        editId && ce('button',{type:'button',className:'btn',style:{background:'#f1f5f9',color:'#64748b',padding:'13px 20px'},onClick:()=>{setEditId(null);setForm({building_id:'',unit:'',password_code:'',role:'owner',allowed_units:0})}},'إلغاء')
+                    )
+                )
+            )
+        )
+    );
+
+    const tabContent = { dashboard:ce(Dashboard), accounts:ce(AccountsList), tickets:ce(Tickets), votes:ce(Votes), add:ce(AddAccount) };
+
+    return ce('div', { className:'shell' },
+        // Sidebar
+        ce('div', { className:'sidebar' },
+            ce('div', { className:'sidebar-logo' },
+                ce('h3', null, '🏢 المبنى الرقمي'),
+                ce('p', null, 'لوحة الإدارة الرئيسية')
+            ),
+            ce('div', { className:'sidebar-nav' },
+                ...navItems.map(item => ce('button', { key:item.id, className:`sidebar-item ${tab===item.id?'active':''}`, onClick:()=>setTab(item.id) },
+                    ce('span', { className:'s-icon' }, item.icon),
+                    ce('span', null, item.label),
+                    item.count>0 && ce('span', { className:'sidebar-badge', style:{background:item.countColor||'#3b82f6'} }, item.count)
+                ))
+            )
+        ),
+        // Main
+        ce('div', { className:'main' },
+            ce('div', { className:'topbar' },
+                ce('h1', null, navItems.find(n=>n.id===tab)?.label || 'لوحة التحكم'),
+                ce('div', { className:'topbar-actions' },
+                    ce('button', { className:'btn', style:{background:'#f1f5f9',color:'#64748b'}, onClick:fetchAll }, '🔄 تحديث'),
+                    ce('button', { className:'btn btn-red-soft', onClick:()=>setAuth(false) }, '🚪 خروج')
+                )
+            ),
+            notif.msg && ce('div', { className:`alert alert-${notif.type}` }, notif.msg),
+            tabContent[tab] || ce(Dashboard)
+        )
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('admin-root'));
+root.render(ce(Admin));
+</script>
 </body>
 </html>
