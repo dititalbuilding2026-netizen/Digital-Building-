@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المبنى الرقمي - لوحة الإدارة المحمية</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans Arabic', sans-serif; background-color: #f0f4f8; margin: 0; padding: 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        .card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); width: 100%; max-width: 550px; box-sizing: border-box; margin-bottom: 16px; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
+        button { padding: 10px 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; }
+        .btn-blue { background: #3b82f6; color: white; width: 100%; }
+        .btn-tabs { background: none; color: #64748b; padding: 12px; border-bottom: 3px solid transparent; border-radius: 0; font-size: 14px; }
+        .active-tab { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
+    </style>
+</head>
+<body>
+
+    <div id="admin-root" style="width: 100%; max-width: 550px;"></div>
+
+    <script>
+        const { useState, useEffect } = React;
+        const supabaseUrl = 'https://qfdkuzlndzlydcrwboqi.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function AdminDashboard() {
+            const [isAuth, setIsAuth] = useState(false);
+            const [passInput, setPassInput] = useState("");
+            const [accounts, setAccounts] = useState([]);
+            const [tickets, setTickets] = useState([]);
+            const [activeTab, setActiveTab] = useState("accounts");
+            const [form, setForm] = useState({ building_id: "", unit: "", password_code: "", role: "owner", allowed_units: 0 });
+            const [voteQuestion, setVoteQuestion] = useState("");
+            const [editingId, setEditingId] = useState(null);
+
+            useEffect(() => { if (isAuth) { fetchAccounts(); fetchTickets(); } }, [isAuth]);
+
+            const fetchAccounts = async () => { const { data } = await supabase.from("building_accounts").select("*").order("created_at", { ascending: false }); setAccounts(data || []); };
+            const fetchTickets = async () => { const { data } = await supabase.from("building_tickets").select("*").order("created_at", { ascending: false }); setTickets(data || []); };
+
+            const handleSaveAccount = async (e) => {
+                e.preventDefault();
+                if (editingId) {
+                    await supabase.from("building_accounts").update(form).eq("id", editingId); setEditingId(null);
+                } else {
+                    await supabase.from("building_accounts").insert([form]);
+                }
+                fetchAccounts(); setForm({ building_id: "", unit: "", password_code: "", role: "owner", allowed_units: 0 });
+                alert("🎉 تم حفظ العملية بنجاح!");
+            };
+
+            const handleDelete = async (id) => {
+                if (confirm("🚨 هل أنت متأكد من حذف الحساب نهائياً؟")) {
+                    await supabase.from("building_accounts").delete().eq("id", id); fetchAccounts();
+                }
+            };
+
+            if (!isAuth) {
+                return React.createElement("div", { className: "card", style: { textAlign: "center", marginTop: "100px" } },
+                    React.createElement("h2", null, "🔒 لوحة الأدمن المحمية"),
+                    React.createElement("input", { type: "password", placeholder: "أدخل كلمة السر المؤقتة", value: passInput, onChange: (e)=>setPassInput(e.target.value) }),
+                    React.createElement("button", { onClick: () => { if(passInput==='Db2026$$') setIsAuth(true); else alert('خطأ!'); }, className: "btn-blue" }, "🔓 دخول")
+                );
+            }
+
+            return React.createElement("div", null,
+                React.createElement("div", { className: "card", style: { display: "flex", gap: 10, justifyContent: "center", padding: 4 } },
+                    React.createElement("button", { onClick: ()=>setActiveTab("accounts"), className: `btn-tabs ${activeTab==='accounts'?'active-tab':''}` }, `👥 الحسابات (${accounts.length})`),
+                    React.createElement("button", { onClick: ()=>setActiveTab("tickets"), className: `btn-tabs ${activeTab==='tickets'?'active-tab':''}` }, `🛠️ الصيانة (${tickets.length})`),
+                    React.createElement("button", { onClick: ()=>setActiveTab("votes"), className: `btn-tabs ${activeTab==='votes'?'active-tab':''}` }, "🗳️ التصويت")
+                ),
+                activeTab === 'accounts' && React.createElement("div", null,
+                    React.createElement("form", { onSubmit: handleSaveAccount, className: "card" },
+                        React.createElement("h3", null, editingId ? "✏️ تعديل الحساب" : "➕ إضافة حساب جديد"),
+                        React.createElement("input", { type: "text", value: form.building_id, placeholder: "اسم / رقم المبنى", onChange: (e)=>setForm({...form, building_id: e.target.value}), required: true }),
+                        React.createElement("input", { type: "text", value: form.unit, placeholder: "رقم الشقة (اتركه فارغاً للمقاول/المدير)", onChange: (e)=>setForm({...form, unit: e.target.value}) }),
+                        React.createElement("input", { type: "text", value: form.password_code, placeholder: "الرمز السري", onChange: (e)=>setForm({...form, password_code: e.target.value}), required: true }),
+                        React.createElement("select", { value: form.role, onChange: (e)=>setForm({...form, role: e.target.value}) },
+                            React.createElement("option", { value: "owner" }, "👤 مالك وحدة"),
+                            React.createElement("option", { value: "hoa" }, "👑 مدير اتحاد الملاك"),
+                            React.createElement("option", { value: "contractor" }, "🔧 مقاول صيانة")
+                        ),
+                        form.role === 'hoa' && React.createElement("input", { type: "number", value: form.allowed_units, placeholder: "عدد الوحدات المسموحة له", onChange: (e)=>setForm({...form, allowed_units: parseInt(e.target.value)||0}) }),
+                        React.createElement("button", { type: "submit", className: "btn-blue" }, "💾 حفظ وتوليد الحساب")
+                    ),
+                    accounts.map(acc => React.createElement("div", { key: acc.id, className: "card" },
+                        React.createElement("strong", null, `🏢 منشأة: ${acc.building_id} | ${acc.unit?`🚪 شقة: ${acc.unit}`:'إدارة عامة'} (${acc.role})`),
+                        React.createElement("p", { style: { margin: "4px 0" } }, `🔑 الرمز السري: ${acc.password_code} ${acc.role==='hoa'?`| 📊 شقق مسموحة: ${acc.allowed_units}`:''}`),
+                        React.createElement("div", { style: { textAlign: "left" } },
+                            React.createElement("button", { onClick: ()=>{ setEditingId(acc.id); setForm(acc); }, style: { background: "#f1f5f9", color: "#f59e0b", marginLeft: 6 } }, "✏️ تعديل"),
+                            React.createElement("button", { onClick: ()=>handleDelete(acc.id), style: { background: "#fef2f2", color: "#ef4444" } }, "🗑️ حذف")
+                        )
+                    ))
+                ),
+                activeTab === 'tickets' && React.createElement("div", null,
+                    tickets.map(t => React.createElement("div", { key: t.id, className: "card", style: { borderRight: `4px solid ${t.status==='pending'?'#ef4444':'#10b981'}` } },
+                        React.createElement("h4", { style: { margin: 0 } }, `🚪 مبنى ${t.building_id} | شقة ${t.unit}`),
+                        React.createElement("p", null, t.title, React.createElement("br", null), React.createElement("small", null, t.description)),
+                        t.status === 'pending' && React.createElement("button", { onClick: async ()=>{ await supabase.from("building_tickets").update({status:'resolved'}).eq('id',t.id); fetchTickets(); }, style: { background: "#10b981", color: "#fff" } }, "⚙️ تم الحل")
+                    ))
+                ),
+                activeTab === 'votes' && React.createElement("form", { onSubmit: async (e)=>{ e.preventDefault(); await supabase.from("building_votes").insert([{ question: voteQuestion, options:['موافق','معترض'] }]); setVoteQuestion(""); alert("📢 نُشر!"); }, className: "card" },
+                    React.createElement("h3", null, "📢 نشر تصويت حي للسكان"),
+                    React.createElement("input", { type: "text", value: voteQuestion, placeholder: "مثال: هل تؤيدون تركيب كاميرات صيانة؟", onChange: (e)=>setVoteQuestion(e.target.value) }),
+                    React.createElement("button", { type: "submit", className: "btn-blue" }, "📢 نشر التصويت فورا")
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('admin-root'));
+        root.render(React.createElement(AdminDashboard));
+    </script>
+</body>
+</html>

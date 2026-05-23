@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المبنى الرقمي - بوابة الخدمات الذكية</title>
+    <!-- مكتبات التشغيل المستقرة -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Noto Sans Arabic', sans-serif; background-color: #f0f4f8; margin: 0; padding: 16px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        .card { background: #fff; padding: 24px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 460px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
+        input:focus, select:focus, textarea:focus { border-color: #3b82f6; outline: none; }
+        label { font-size: 12px; color: #64748b; display: block; text-align: right; margin-bottom: 4px; font-weight: bold; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 14px; transition: 0.2s; }
+        .btn-blue { background: #3b82f6; color: #fff; }
+        .btn-red { background: #ef4444; color: #fff; }
+        .btn-green { background: #10b981; color: #fff; }
+        .menu-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 11px; cursor: pointer; }
+        .error { color: #ef4444; font-weight: bold; margin-bottom: 14px; font-size: 12px; text-align: center; background: #fef2f2; padding: 10px; border-radius: 10px; }
+        .success-box { background: #f0fdf4; color: #10b981; padding: 12px; border-radius: 10px; font-weight: bold; text-align: center; font-size: 12px; border: 1px solid #bbf7d0; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script>
+        const { useState, useEffect } = React;
+        
+        const supabaseUrl = 'https://qfdkuzlndzlydcrwboqi.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZGt1emxuZHpseWRjcndib3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTU2OTQsImV4cCI6MjA5NTAzMTY5NH0.WYx5xRSifld6Bd45dBzuX_1gnUkeM0fhQOiH1QguWtY';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function TenantApp() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [userData, setUserData] = useState(null);
+            const [errorMsg, setErrorMsg] = useState("");
+            const [activeMenu, setActiveMenu] = useState("home");
+
+            const [credentials, setCredentials] = useState({ building_id: "", unit: "", password_code: "", role: "owner", property_type: "building" });
+            const [managedAccounts, setManagedAccounts] = useState([]);
+            const [hoaForm, setHoaForm] = useState({ role: "owner", unit: "", password_code: "" });
+            
+            const [tickets, setTickets] = useState([]);
+            const [votes, setVotes] = useState([]);
+            const [votedList, setVotedList] = useState([]);
+            const [ticketForm, setTicketForm] = useState({ title: "", description: "" });
+            const [notif, setNotif] = useState("");
+
+            const loadAppData = (user) => {
+                supabase.from("building_tickets").select("*").eq("building_id", user.building_id).then(res => { if(res.data) setTickets(res.data); });
+                supabase.from("building_votes").select("*").eq("building_id", user.building_id).then(res => { if(res.data) setVotes(res.data); });
+                supabase.from("building_accounts").select("*").eq("created_by", user.password_code).then(res => { if(res.data) setManagedAccounts(res.data); });
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setLoading(true); setErrorMsg("");
+                try {
+                    let query = supabase.from("building_accounts").select("*").eq("building_id", credentials.building_id.trim()).eq("password_code", credentials.password_code.trim()).eq("role", credentials.role);
+                    if (credentials.role === 'owner') query = query.eq("unit", credentials.unit.trim());
+
+                    const { data } = await query;
+                    if (data && data.length > 0) {
+                        setUserData(data[0]); setIsLoggedIn(true); loadAppData(data[0]);
+                    } else { setErrorMsg("⚠️ بيانات الدخول غير مطابقة، تأكد من المدخلات والرمز السري"); }
+                } catch (err) { setErrorMsg("⚠️ حدث خطأ في الاتصال بالسيرفر"); }
+                setLoading(false);
+            };
+
+            const handleHoaCreate = async (e) => {
+                e.preventDefault(); setNotif("");
+                if (managedAccounts.length >= (userData.allowed_units || 0)) {
+                    setNotif("⚠️ عذراً! استهلكت كامل باقة الوحدات المتاحة لك."); return;
+                }
+                const newAcc = { building_id: userData.building_id, unit: hoaForm.unit.trim(), password_code: hoaForm.password_code.trim(), role: hoaForm.role, created_by: userData.password_code };
+                await supabase.from("building_accounts").insert([newAcc]);
+                setNotif("🎉 تم توليد حساب الساكن بنجاح!"); setHoaForm({ role: "owner", unit: "", password_code: "" });
+                supabase.from("building_accounts").select("*").eq("created_by", userData.password_code).then(res => { if(res.data) setManagedAccounts(res.data); });
+            };
+
+            const handleSendTicket = async (e) => {
+                e.preventDefault();
+                await supabase.from("building_tickets").insert([{ building_id: userData.building_id, unit: userData.unit || 'عامة', title: ticketForm.title, description: ticketForm.description }]);
+                setNotif("✅ تم إرسال بلاغ الصيانة بنجاح!"); setTicketForm({ title: "", description: "" });
+                supabase.from("building_tickets").select("*").eq("building_id", userData.building_id).then(res => { if(res.data) setTickets(res.data); });
+            };
+
+            if (isLoggedIn && userData) {
+                return React.createElement("div", { className: "card" },
+                    React.createElement("div", { style: { background: userData.role==='hoa'?'#6366f1':'#1e293b', color: "#fff", padding: 16, borderRadius: 16, textAlign: "center", marginBottom: 16 } },
+                        React.createElement("h3", { style: { margin: 0 } }, "المبنى الرقمي الذكي 🏢"),
+                        React.createElement("p", { style: { margin: "4px 0 0", fontSize: 12 } }, `منشأة: ${userData.building_id} ${userData.unit ? `| وحدة: ${userData.unit}` : ''}`),
+                        React.createElement("span", { style: { fontSize: 11, fontWeight: "bold", background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: 10, display: "inline-block", marginTop: 6 } }, `صلاحيتك: ${userData.role==='owner'?'مالك':userData.role==='hoa'?'مدير اتحاد':'مقاول'}`)
+                    ),
+                    React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16 } },
+                        React.createElement("button", { onClick: () => setActiveMenu("home"), className: "menu-btn", style: { background: activeMenu==='home'?'#3b82f6':'#fff', color: activeMenu==='home'?'#fff':'#64748b' } }, "🏠 رئيسية"),
+                        userData.role !== 'contractor' && React.createElement("button", { onClick: () => setActiveMenu("ticket"), className: "menu-btn", style: { background: activeMenu==='ticket'?'#3b82f6':'#fff', color: activeMenu==='ticket'?'#fff':'#64748b' } }, "🛠️ صيانة"),
+                        userData.role !== 'contractor' && React.createElement("button", { onClick: () => setActiveMenu("vote"), className: "menu-btn", style: { background: activeMenu==='vote'?'#3b82f6':'#fff', color: activeMenu==='vote'?'#fff':'#64748b' } }, "🗳️ تصويت"),
+                        userData.role === 'hoa' && React.createElement("button", { onClick: () => setActiveMenu("hoa"), className: "menu-btn", style: { background: activeMenu==='hoa'?'#3b82f6':'#fff', color: activeMenu==='hoa'?'#fff':'#64748b' } }, "👑 إدارة")
+                    ),
+                    notif && React.createElement("div", { className: "success-box", style: { marginBottom: 12 } }, notif),
+                    activeMenu === 'home' && React.createElement("div", { className: "success-box" }, "💰 الحساب مستقر ولا توجد مستحقات معلقة لعام 2026م."),
+                    activeMenu === 'ticket' && React.createElement("div", null,
+                        React.createElement("form", { onSubmit: handleSendTicket },
+                            React.createElement("input", { type: "text", value: ticketForm.title, placeholder: "عنوان العطل", onChange: (e)=>setTicketForm({...ticketForm, title:e.target.value}), required: true }),
+                            React.createElement("textarea", { value: ticketForm.description, placeholder: "تفاصيل الموقع...", onChange: (e)=>setTicketForm({...ticketForm, description:e.target.value}), required: true }),
+                            React.createElement("button", { type: "submit", className: "btn btn-red" }, "🚀 إرسال البلاغ فوراً")
+                        )
+                    ),
+                    activeMenu === 'vote' && React.createElement("div", null,
+                        votes.map(v => React.createElement("div", { key: v.id, style: { border: "1px solid #e2e8f0", padding: 10, borderRadius: 12, marginBottom: 8 } },
+                            React.createElement("p", { style: { margin: "0 0 8px 0", fontWeight: "bold" } }, v.question),
+                            React.createElement("div", { style: { display: "flex", gap: 6 } },
+                                React.createElement("button", { onClick: () => { supabase.from("vote_responses").insert([{ vote_id: v.id, unit: userData.unit || 'مدير', selected_option: 'موافق' }]); setNotif("✓ تم تسجيل التصويت"); }, className: "btn btn-green", style: { padding: 6 } }, "👍 موافق"),
+                                React.createElement("button", { onClick: () => { supabase.from("vote_responses").insert([{ vote_id: v.id, unit: userData.unit || 'مدير', selected_option: 'معترض' }]); setNotif("✓ تم تسجيل التصويت"); }, className: "btn btn-red", style: { padding: 6 } }, "👎 معترض")
+                            )
+                        ))
+                    ),
+                    activeMenu === 'hoa' && React.createElement("div", null,
+                        React.createElement("div", { style: { background: "#f8fafc", padding: 10, textAlign: "center", borderRadius: 12, marginBottom: 10, border: "1px solid #e2e8f0" } }, `📊 الوحدات المضافة: ${managedAccounts.length} من أصل ${userData.allowed_units || 0}`),
+                        React.createElement("form", { onSubmit: handleHoaCreate },
+                            React.createElement("input", { type: "text", value: hoaForm.unit, placeholder: "رقم الشقة", onChange: (e)=>setHoaForm({...hoaForm, unit:e.target.value}), required: true }),
+                            React.createElement("input", { type: "text", value: hoaForm.password_code, placeholder: "الرمز السري للدخول", onChange: (e)=>setHoaForm({...hoaForm, password_code:e.target.value}), required: true }),
+                            React.createElement("select", { value: hoaForm.role, onChange: (e)=>setHoaForm({...hoaForm, role:e.target.value}) },
+                                React.createElement("option", { value: "owner" }, "👤 مالك وحدة"),
+                                React.createElement("option", { value: "contractor" }, "🔧 مقاول صيانة")
+                            ),
+                            React.createElement("button", { type: "submit", className: "btn btn-green" }, "💾 توليد وحفظ الحساب")
+                        )
+                    ),
+                    React.createElement("button", { onClick: () => location.reload(), className: "btn btn-blue", style: { marginTop: 16 } }, "🚪 تسجيل الخروج")
+                );
+            }
+
+            return React.createElement("div", null,
+                React.createElement("span", { style: { fontSize: 40 } }, "🏢"),
+                React.createElement("h2", { style: { color: "#1e293b", margin: "10px 0 0", fontWeight: 900 } }, "المبنى الرقمي"),
+                React.createElement("p", { style: { color: "#64748b", fontSize: 12, margin: "4px 0 20px" } }, "بوابتك الذكية لإدارة عقارك"),
+                errorMsg && React.createElement("div", { className: "error" }, errorMsg),
+                React.createElement("form", { onSubmit: handleLogin },
+                    React.createElement("label", null, "الدور / الصفة"),
+                    React.createElement("select", { value: credentials.role, onChange: (e) => setCredentials({ ...credentials, role: e.target.value }) },
+                        React.createElement("option", { value: "owner" }, "👤 مالك الوحدة"),
+                        React.createElement("option", { value: "hoa" }, "👑 رئيس جمعية اتحاد الملاك"),
+                        React.createElement("option", { value: "contractor" }, "🔧 مقاول الصيانة")
+                    ),
+                    credentials.role === 'owner' && React.createElement("div", null,
+                        React.createElement("label", null, "نوع السكن"),
+                        React.createElement("select", { value: credentials.property_type, onChange: (e) => setCredentials({ ...credentials, property_type: e.target.value }) },
+                            React.createElement("option", { value: "building" }, "🏢 عمارة"),
+                            React.createElement("option", { value: "compound" }, "🏡 كمباوند")
+                        )
+                    ),
+                    React.createElement("label", null, credentials.role==='owner' && credentials.property_type==='compound' ? "اسم الكمباوند" : "رقم / اسم العمارة"),
+                    React.createElement("input", { type: "text", value: credentials.building_id, placeholder: "مثال: 12", onChange: (e) => setCredentials({ ...credentials, building_id: e.target.value }), required: true }),
+                    credentials.role === 'owner' && React.createElement("div", null,
+                        React.createElement("label", null, "رقم الشقة / الوحدة"),
+                        React.createElement("input", { type: "text", value: credentials.unit, placeholder: "مثال: 5", onChange: (e) => setCredentials({ ...credentials, unit: e.target.value }), required: true })
+                    ),
+                    React.createElement("label", null, "الرمز السري"),
+                    React.createElement("input", { type: "password", value: credentials.password_code, placeholder: "🔑 الرمز السري", onChange: (e) => setCredentials({ ...credentials, password_code: e.target.value }), required: true }),
+                    React.createElement("button", { type: "submit", className: "btn btn-blue" }, "🚪 تسجيل الدخول")
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(TenantApp));
+    </script>
+</body>
+</html>
