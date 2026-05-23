@@ -353,6 +353,8 @@ function App(){
     const [tForm,setTForm]=useState({title:'',description:''});
     const [hoaForm,setHoaForm]=useState({unit:'',password_code:'',role:'owner'});
     const [notif,setNotif]=useState({type:'',msg:''});
+    const [reports,setReports]=useState([]);
+    const [rForm,setRForm]=useState({title:'',description:'',work_date:'',amount:'',invoice_note:'',invoice_url:''});
     const [notifications,setNotifications]=useState([
         {id:1,text:'تم الموافقة على طلب صيانة المصعد',time:'منذ ساعة',read:false},
         {id:2,text:'جدول الصيانة الشهرية: يوم الجمعة 9 صباحاً',time:'منذ 3 ساعات',read:false},
@@ -365,6 +367,7 @@ function App(){
     const load=u=>{
         sb.from('building_tickets').select('*').eq('building_id',u.building_id).order('created_at',{ascending:false}).then(r=>r.data&&setTickets(r.data));
         sb.from('building_votes').select('*').eq('building_id',u.building_id).order('created_at',{ascending:false}).then(r=>r.data&&setVotes(r.data));
+        sb.from('maintenance_reports').select('*').eq('building_id',u.building_id).order('created_at',{ascending:false}).then(r=>r.data&&setReports(r.data));
         if(u.role==='hoa'){
             sb.from('building_accounts').select('*').eq('created_by',u.password_code).then(r=>r.data&&setManaged(r.data));
             sb.from('visitor_requests').select('*').eq('building_id',u.building_id).order('created_at',{ascending:false}).limit(50).then(r=>r.data&&setVisitorLog(r.data));
@@ -431,6 +434,7 @@ function App(){
         {id:'home',   icon:'🏠',label:'رئيسية'},
         user.role!=='contractor'&&{id:'docs',    icon:'📁',label:'وثائقي'},
         user.role!=='contractor'&&{id:'ticket',  icon:'🔧',label:'صيانة'},
+        {id:'mreports', icon:'💰',label:'الفواتير'},
         user.role!=='contractor'&&{id:'vote',    icon:'🗳️',label:'تصويت'},
         user.role==='owner'&&{id:'visitor', icon:'👥',label:'زوار'},
         user.role==='hoa'&&{id:'security',icon:'🛡️',label:'الأمن'},
@@ -713,6 +717,123 @@ function App(){
         );
     };
 
+
+    const sendReport=async e=>{
+        e.preventDefault();
+        if(!rForm.title||!rForm.amount){toast('error','يرجى إدخال العنوان والمبلغ');return;}
+        await sb.from('maintenance_reports').insert([{
+            building_id:user.building_id,
+            contractor_unit:user.unit||'مقاول',
+            title:rForm.title,
+            description:rForm.description,
+            work_date:rForm.work_date||null,
+            amount:parseFloat(rForm.amount)||0,
+            invoice_note:rForm.invoice_note||null,
+            status:'pending',
+        }]);
+        toast('success','📋 تم رفع التقرير — في انتظار موافقة رئيس الاتحاد');
+        setRForm({title:'',description:'',work_date:'',amount:'',invoice_note:'',invoice_url:''});
+        load(user);
+    };
+
+    const approveReport=async(id)=>{
+        await sb.from('maintenance_reports').update({status:'approved',approved_by:user.unit||'هيئة الاتحاد'}).eq('id',id);
+        toast('success','✅ تمت الموافقة — ستظهر للجميع الآن');
+        load(user);
+    };
+
+    // ── MAINTENANCE REPORTS (فواتير الصيانة) ────────────────────────────────
+    const MReportsTab=()=>{
+        const approved=reports.filter(r=>r.status==='approved');
+        const pending_r=reports.filter(r=>r.status==='pending');
+        const totalSpent=approved.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+        return ce('div',null,
+            // ملخص مالي — يشوفه الجميع
+            ce('div',{style:{background:'linear-gradient(135deg,#1e293b,#334155)',borderRadius:16,padding:20,marginBottom:12,color:'#fff'}},
+                ce('div',{style:{fontSize:12,opacity:.6,marginBottom:4}},'إجمالي مصاريف الصيانة — '+user.building_id),
+                ce('div',{style:{fontSize:32,fontWeight:900,marginBottom:4}},totalSpent.toLocaleString()+' ريال'),
+                ce('div',{style:{display:'flex',gap:12,marginTop:10}},
+                    ce('div',{style:{background:'rgba(16,185,129,.2)',borderRadius:10,padding:'8px 14px',fontSize:12,color:'#6ee7b7'}},approved.length+' فاتورة مُعتمدة'),
+                    pending_r.length>0&&ce('div',{style:{background:'rgba(245,158,11,.2)',borderRadius:10,padding:'8px 14px',fontSize:12,color:'#fcd34d'}},pending_r.length+' بانتظار الموافقة')
+                )
+            ),
+            // المقاول — رفع تقرير جديد
+            user.role==='contractor'&&ce('div',{className:'card'},
+                ce('div',{className:'ch'},ce('h3',null,'📋 رفع تقرير صيانة جديد')),
+                ce('div',{className:'cb'},
+                    ce('form',{onSubmit:sendReport},
+                        ce('input',{className:'f-input',value:rForm.title,onChange:e=>setRForm({...rForm,title:e.target.value}),placeholder:'عنوان العمل (مثال: تنظيف خزانات المياه)...',required:true}),
+                        ce('textarea',{className:'f-input',value:rForm.description,onChange:e=>setRForm({...rForm,description:e.target.value}),placeholder:'وصف تفصيلي للعمل المنجز...'}),
+                        ce('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+                            ce('div',null,
+                                ce('label',{className:'f-label'},'تاريخ تنفيذ العمل'),
+                                ce('input',{className:'f-input',type:'date',value:rForm.work_date,onChange:e=>setRForm({...rForm,work_date:e.target.value})})
+                            ),
+                            ce('div',null,
+                                ce('label',{className:'f-label'},'المبلغ (ريال)'),
+                                ce('input',{className:'f-input',type:'number',value:rForm.amount,onChange:e=>setRForm({...rForm,amount:e.target.value}),placeholder:'0',required:true})
+                            )
+                        ),
+                        ce('input',{className:'f-input',value:rForm.invoice_note,onChange:e=>setRForm({...rForm,invoice_note:e.target.value}),placeholder:'رقم الفاتورة أو ملاحظات الدفع...'}),
+                        ce('div',{style:{border:'2px dashed #e2e8f0',borderRadius:12,padding:16,textAlign:'center',marginBottom:10,cursor:'pointer',color:'#64748b'}},
+                            ce('div',{style:{fontSize:28,marginBottom:4}},'📎'),
+                            ce('div',{style:{fontSize:13,fontWeight:600}},'رفع صورة الفاتورة'),
+                            ce('div',{style:{fontSize:11,color:'#94a3b8',marginTop:2}},'JPG, PNG, PDF')
+                        ),
+                        ce('button',{type:'submit',className:'btn btn-green'},'📤 رفع التقرير للموافقة')
+                    )
+                )
+            ),
+            // رئيس الاتحاد — موافقة على التقارير المعلقة
+            user.role==='hoa'&&pending_r.length>0&&ce('div',{className:'card'},
+                ce('div',{className:'ch'},ce('h3',null,'⏳ تحتاج موافقتك'),ce('span',{className:'badge bg-a'},pending_r.length)),
+                ...pending_r.map(r=>ce('div',{key:r.id,style:{padding:'14px 16px',borderBottom:'1px solid #f5f7fa'}},
+                    ce('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}},
+                        ce('div',null,
+                            ce('div',{style:{fontSize:13,fontWeight:700,color:'#1e293b',marginBottom:3}},r.title),
+                            ce('div',{style:{fontSize:12,color:'#64748b'}},r.description||'—'),
+                            ce('div',{style:{display:'flex',gap:8,marginTop:6}},
+                                ce('span',{style:{background:'#eff6ff',color:'#3b82f6',padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700}},parseFloat(r.amount||0).toLocaleString()+' ريال'),
+                                r.work_date&&ce('span',{style:{background:'#f1f5f9',color:'#64748b',padding:'3px 10px',borderRadius:20,fontSize:11}},r.work_date),
+                                r.invoice_note&&ce('span',{style:{background:'#fef3c7',color:'#d97706',padding:'3px 10px',borderRadius:20,fontSize:11}},r.invoice_note)
+                            )
+                        )
+                    ),
+                    ce('div',{style:{display:'flex',gap:8}},
+                        ce('button',{onClick:()=>approveReport(r.id),style:{flex:1,padding:10,background:'linear-gradient(135deg,#10b981,#059669)',color:'#fff',border:'none',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontWeight:700,fontSize:13}},'✓ اعتماد — تظهر للجميع'),
+                        ce('button',{style:{padding:'10px 16px',background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontWeight:700,fontSize:13}},'✗ رفض')
+                    )
+                ))
+            ),
+            // الفواتير المعتمدة — يشوفها الجميع
+            ce('div',{className:'card'},
+                ce('div',{className:'ch'},
+                    ce('h3',null,'✅ الفواتير المعتمدة'),
+                    ce('span',{className:'badge bg-g'},approved.length)
+                ),
+                approved.length===0
+                    ?ce('div',{className:'cb'},ce(Empty,{icon:'💰',txt:'لا توجد فواتير معتمدة بعد'}))
+                    :approved.map(r=>ce('div',{key:r.id,style:{padding:'14px 16px',borderBottom:'1px solid #f5f7fa'}},
+                        ce('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+                            ce('div',{style:{flex:1}},
+                                ce('div',{style:{fontSize:13,fontWeight:700,color:'#1e293b',marginBottom:3}},r.title),
+                                r.description&&ce('div',{style:{fontSize:11,color:'#64748b',marginBottom:6}},r.description),
+                                ce('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
+                                    ce('span',{style:{background:'#dcfce7',color:'#16a34a',padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:800}},parseFloat(r.amount||0).toLocaleString()+' ريال'),
+                                    r.work_date&&ce('span',{style:{background:'#f1f5f9',color:'#64748b',padding:'3px 10px',borderRadius:20,fontSize:11}},r.work_date),
+                                    r.invoice_note&&ce('span',{style:{background:'#fef3c7',color:'#d97706',padding:'3px 10px',borderRadius:20,fontSize:11}},r.invoice_note),
+                                    r.approved_by&&ce('span',{style:{background:'#eff6ff',color:'#3b82f6',padding:'3px 10px',borderRadius:20,fontSize:10}},'اعتمد: '+r.approved_by)
+                                )
+                            ),
+                            ce('div',{style:{marginRight:8,fontSize:11,color:'#94a3b8',textAlign:'left',flexShrink:0}},
+                                new Date(r.created_at).toLocaleDateString('ar',{day:'numeric',month:'short'})
+                            )
+                        )
+                    ))
+            )
+        );
+    };
+
     // ── HOA MANAGE ──────────────────────────────────────────────────────
     const ManageTab=()=>{
         const [mtab,setMtab]=useState('accounts');
@@ -793,7 +914,7 @@ function App(){
         );
     };
 
-    const content={home:ce(HomeTab),docs:ce(DocsTab),ticket:ce(TicketTab),vote:ce(VoteTab),visitor:ce(VisitorTab),security:ce(SecurityTab),manage:ce(ManageTab)};
+    const content={home:ce(HomeTab),docs:ce(DocsTab),ticket:ce(TicketTab),mreports:ce(MReportsTab),vote:ce(VoteTab),visitor:ce(VisitorTab),security:ce(SecurityTab),manage:ce(ManageTab)};
 
     return ce('div',{className:'app-shell'},
         ce('div',{className:'top-nav'},
